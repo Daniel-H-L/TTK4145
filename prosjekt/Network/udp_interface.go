@@ -1,4 +1,4 @@
-package udp_interface
+package Network
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ func udp_interface_check_error(err error) {
 	}
 }
 
-func udp_interface_init() net.Listener {
+func udp_interface_init() *net.UDPConn {
 	//socket
 	localAddr, err := net.ResolveUDPAddr("udp", portNr)
 	udp_interface_check_error(err)
@@ -25,11 +25,11 @@ func udp_interface_init() net.Listener {
 	return conn
 }
 
-func udp_interface_send(destinationIP string, msg chan string) {
+func Udp_interface_send(destinationIP string, msg chan []byte]) { //removed string chan
 	localAddr, err := net.ResolveUDPAddr("udp", portNr)
 	udp_interface_check_error(err)
 
-	conn, err := net.DialUDP("udp", localAddr)
+	conn, err := net.DialUDP("udp", nil, localAddr)
 	udp_interface_check_error(err)
 
 	data := <-msg
@@ -41,7 +41,7 @@ func udp_interface_send(destinationIP string, msg chan string) {
 	time.Sleep(200 * time.Millisecond)
 }
 
-func udp_interface_receive(msg chan string) {
+func Udp_interface_receive(msg chan string) {
 	connection := udp_interface_init()
 
 	buffer := make([]byte, 1024)
@@ -52,15 +52,15 @@ func udp_interface_receive(msg chan string) {
 		if err != nil {
 			udp_interface_check_error(err)
 		}
-		msg <- (string(buffer[0:n]))
+		msg <- string(buffer[0:n]) //removed string()
 	}
 }
 
-func udp_interface_bcast(msg chan string) {
-	localAddr, err := net.ResolveUDPAddr("udp", portNr)
+func Udp_interface_bcast(msg chan string) {
+	localAddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:40018")
 	udp_interface_check_error(err)
 
-	conn, err := conn.DialBroadcastUDP(portNr)
+	conn, err := net.DialUDP("udp", nil, localAddr)
 	udp_interface_check_error(err)
 
 	data := <-msg
