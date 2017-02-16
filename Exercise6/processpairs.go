@@ -103,7 +103,7 @@ func backup() {
 		json.Unmarshal(buffer[:mlen], &rec_msg)
 		i := rec_msg.Cnt
 		fmt.Println("Backup received ", i)
-		queue := append(queue, i)
+		queue = append(queue, i)
 	}
 	socket.Close()
 }
