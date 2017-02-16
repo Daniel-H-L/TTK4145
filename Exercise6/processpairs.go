@@ -60,11 +60,13 @@ func start() {
 	if err != nil {
 		state = 1
 		fmt.Println("I am master...")
-		cmd := exec.Command("gnome-terminal", "-x", "go", "run", "processpairs.go")
-		cmd.Run()
+		// cmd := exec.Command("gnome-terminal", "-x", "go", "run", "processpairs.go")
+		// cmd.Run()
 	} else {
 		state = 2
 		fmt.Println("I am slave...")
+		cmd := exec.Command("gnome-terminal", "-x", "go", "run", "processpairs.go")
+		cmd.Run()
 	}
 	conn.Close()
 }
