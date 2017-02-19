@@ -11,9 +11,9 @@ import (
 
 var state int
 var localIP string
-var portNr string = ":30018"
+var portNr string = ":31800"
 var count int = -1
-var queue = make([]int, 1)
+var queue = make([]int, 2)
 
 type MSG struct {
 	Msg string
@@ -58,21 +58,19 @@ func start() {
 	_, _, err := conn.ReadFromUDP(buffer)
 
 	if err != nil {
+		count = queue[1]
 		state = 1
 		fmt.Println("I am master...")
-		// cmd := exec.Command("gnome-terminal", "-x", "go", "run", "processpairs.go")
-		// cmd.Run()
+		cmd := exec.Command("gnome-terminal", "-x", "go", "run", "processpairs.go")
+		cmd.Run()
 	} else {
 		state = 2
 		fmt.Println("I am slave...")
-		cmd := exec.Command("gnome-terminal", "-x", "go", "run", "processpairs.go")
-		cmd.Run()
 	}
 	conn.Close()
 }
 
 func primary_bcast(message MSG) {
-	fmt.Println("Master count: ", message.Cnt)
 	localAddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:31800")
 	Udp_interface_check_error(err)
 	conn, err := net.DialUDP("udp", nil, localAddr)
@@ -97,10 +95,9 @@ func backup() {
 	fmt.Println("Received: ", string(buffer[0:]))
 
 	if err != nil {
-		count = queue[1]
 		state = 0
 	} else {
-		queue := queue[1:]
+		queue := queue[:1]
 		rec_msg := MSG{}
 		json.Unmarshal(buffer[:mlen], &rec_msg)
 		i := rec_msg.Cnt
