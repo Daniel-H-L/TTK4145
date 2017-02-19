@@ -29,12 +29,12 @@ type StandardData struct {
 }
 
 func Run_network() {
-	chan_udp_bcast := make(chan string, 1)
-	chan_is_alive := make(chan string)
-	chan_received_msg := make(chan []byte)
-	chan_is_master := make(chan bool, 1)
-	chan_order_executed := make(chan int)
-	chan_descendant_nr := make(chan int)
-	chan_new_order := make(chan NewOrder)
-	chan_local_order := make(chan LocalOrder)
+	// chan_udp_bcast := make(chan string, 1)
+	// chan_is_alive := make(chan string)
+	// chan_received_msg := make(chan []byte)
+	// chan_is_master := make(chan bool, 1)
+	// chan_order_executed := make(chan int)
+	// chan_descendant_nr := make(chan int)
+	// chan_new_order := make(chan NewOrder)
+	// chan_local_order := make(chan LocalOrder)
 }

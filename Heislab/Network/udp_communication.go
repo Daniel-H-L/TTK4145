@@ -1,14 +1,13 @@
 package Network
 
 import (
-	"fmt"
 	"net"
 	"strings"
 	"time"
 )
 
 var localIP string
-var masterIP
+var masterIP string
 
 func udp_get_local_ip() (string, error) {
 	if localIP == "" {
@@ -22,18 +21,17 @@ func udp_get_local_ip() (string, error) {
 	return localIP, nil
 }
 
-func udp_get_master_ip(chan_is_master chan bool) (string, error) {
-	is_master := <- chan_is_master
+func udp_get_master_ip(chan_is_master chan bool) string {
+	is_master := <-chan_is_master
 
 	if is_master {
-		masterIP = udp_get_local_ip()
+		masterIP, _ = udp_get_local_ip()
 	}
-
 	return masterIP
 }
 
 //Only master
-func Udp_broadcast_ip(msg_id string, elevator_nr int, chan_udp_bcast chan string) {
+func Udp_broadcast(msg_id string, elevator_nr int, chan_udp_bcast chan string) {
 	send_object := StandardData{}
 	send_object.IP, _ = udp_get_local_ip()
 	send_object.msg_ID = msg_id
@@ -52,23 +50,24 @@ func udp_send_is_alive(destination_ip string, chan_is_alive chan string) {
 
 	for {
 		Udp_interface_send(destination_ip, chan_is_alive) //burde for-løkken heller implementeres i laget over?
-		chan_is_alive <- StandardData.IP
-		time.Sleep(time.Second)
+		chan_is_alive <- send
+		time.Sleep(200 * time.Millisecond)
 	}
 }
 
-func udp_receive_is_alive(chan_received_msg chan []byte, chan_is_alive chan string) {
-	go Udp_interface_receive(chan_received_msg)
+func udp_receive_is_alive(chan_received_msg chan []byte, chan_is_alive chan string, portNr string) {
+	go Udp_interface_receive(chan_received_msg, portNr)
 
-	received := <- chan_received_msg
+	received := <-chan_received_msg
 
 	data := Udp_json_to_struct(received, 1024)
 	chan_is_alive <- data.IP
 }
 
 //Only slaves
-func udp_send_order_executed(order_nr int, chan_order_executed chan int) {
+func udp_send_order_executed(order_nr int) {
 	order := StandardData{}
+	chan_order_executed := make(chan []byte)
 	order.order_executed = order_nr
 
 	chan_order_executed <- Udp_struct_to_json(order)
@@ -77,10 +76,10 @@ func udp_send_order_executed(order_nr int, chan_order_executed chan int) {
 }
 
 //Only master
-func udp_receive_order_executed(chan_order_executed chan int, chan_received_msg chan []byte) {
-	go Udp_interface_receive(chan_received_msg)
+func udp_receive_order_executed(chan_order_executed chan int, chan_received_msg chan []byte, portNr string) {
+	go Udp_interface_receive(chan_received_msg, portNr)
 
-	received := <- chan_received_msg
+	received := <-chan_received_msg
 	data := Udp_json_to_struct(received, 1024)
 
 	chan_order_executed <- data.order_executed
@@ -95,10 +94,10 @@ func udp_send_descendant_nr(chan_descendant_nr chan int, descendant_nr int, dest
 }
 
 //Only slave
-func udp_receive_descendant_nr(chan_descendant_nr chan int, chan_received_msg chan []byte) {
-	go Udp_interface_receive(chan_received_msg)
+func udp_receive_descendant_nr(chan_descendant_nr chan int, chan_received_msg chan []byte, portNr string) {
+	go Udp_interface_receive(chan_received_msg, portNr)
 
-	received := <- chan_received_msg
+	received := <-chan_received_msg
 	data := Udp_json_to_struct(received, 1024)
 
 	chan_descendant_nr <- data.descendant_nr
@@ -113,13 +112,12 @@ func udp_send_new_order(new_order NewOrder, dest_ip string, chan_new_order chan 
 }
 
 //Only slave
-func udp_receive_new_order(chan_new_order chan NewOrder, chan_received_msg chan []byte) {
-	go Udp_interface_receive(chan_received_msg)
-	received := <- chan_new_order
+func udp_receive_new_order(chan_new_order chan NewOrder, chan_received_msg chan []byte, portNr string) {
+	go Udp_interface_receive(chan_received_msg, portNr)
+	received := <-chan_new_order
 	data := Udp_json_to_struct(received, 1024)
 	chan_new_order <- data.new_order
 }
-
 
 func udp_send_local_order(local_order LocalOrder, dest_ip string, chan_local_order chan LocalOrder) {
 	order := StandardData{}
@@ -129,12 +127,9 @@ func udp_send_local_order(local_order LocalOrder, dest_ip string, chan_local_ord
 }
 
 //Only master
-func udp_receive_local_order(chan_local_order chan LocalOrder, chan_received_msg chan []byte) {
-	go Udp_interface_receive(chan_received_msg)
-	received := <- chan_local_order
+func udp_receive_local_order(chan_local_order chan LocalOrder, chan_received_msg chan []byte, portNr string) {
+	go Udp_interface_receive(chan_received_msg, portNr)
+	received := <-chan_local_order
 	data := Udp_json_to_struct(received, 1024)
 	chan_local_order <- data.local_order
 }
-
-
-

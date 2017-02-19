@@ -39,7 +39,7 @@ func Udp_interface_check_error(err error) {
 	}
 }
 
-func Udp_interface_init() *net.UDPConn {
+func udp_interface_init() *net.UDPConn {
 	//socket
 	localAddr, err := net.ResolveUDPAddr("udp", portNr)
 	Udp_interface_check_error(err)
@@ -52,7 +52,7 @@ func Udp_interface_init() *net.UDPConn {
 
 func start() {
 	buffer := make([]byte, 1024)
-	conn := Udp_interface_init()
+	conn := udp_interface_init()
 
 	conn.SetReadDeadline(time.Now().Add(time.Second))
 	_, _, err := conn.ReadFromUDP(buffer)
@@ -72,7 +72,7 @@ func start() {
 
 func primary_bcast(message MSG) {
 	localAddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:31800")
-	Udp_interface_check_error(err)
+	udp_interface_check_error(err)
 	conn, err := net.DialUDP("udp", nil, localAddr)
 	Udp_interface_check_error(err)
 	defer conn.Close()
