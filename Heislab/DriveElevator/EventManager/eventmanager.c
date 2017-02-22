@@ -1,4 +1,4 @@
-#include "q.h"
+#include "queue.h"
 #include "elev.h"
 #include "timer.h" 
 #include "eventmanager.h"
@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 
-int new_order_in_empty_q(){ 
+int new_order_in_empty_queue(){ 
     if (state == IDLE) {
         if(check_orders_above(current_floor) == 1){
             set_state_and_dir(MOVING, UP);

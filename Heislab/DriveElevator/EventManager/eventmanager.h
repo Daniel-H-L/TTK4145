@@ -1,7 +1,7 @@
 #ifndef __EVENTMANAGER_H__
 #define __EVENTMANAGER_H__
 
-int new_order_in_empty_q();
+int new_order_in_empty_queue();
 
 void arrive_at_floor();
 

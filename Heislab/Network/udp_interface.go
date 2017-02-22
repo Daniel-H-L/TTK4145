@@ -26,45 +26,45 @@ func udp_interface_init(portNr string) *net.UDPConn {
 	return conn
 }
 
-func Udp_interface_send(destinationIP string, msg chan []byte) { //removed string chan
+func Udp_interface_send(destinationIP string, data []byte) {
 	localAddr, err := net.ResolveUDPAddr("udp", port)
 	udp_interface_check_error(err)
 
 	conn, err := net.DialUDP("udp", nil, localAddr)
 	udp_interface_check_error(err)
 
-	data := <-msg
-
 	if len(data) > 0 {
-		conn.Write([]byte(data))
+		conn.Write(data)
 	}
 
 	time.Sleep(200 * time.Millisecond)
 }
 
-func Udp_interface_receive(msg chan string, portNr string) {
+func Udp_interface_receive(msg chan string, portNr string, chan_error chan error) {
 	connection := udp_interface_init(portNr)
-
+	connection.SetReadDeadline(time.Now().Add(time.Second))
 	buffer := make([]byte, 1024)
 
 	for {
-		n, _, err := connection.ReadFromUDP(buffer) //senderIP
+		defer connection.Close()
+		n, _, err := connection.ReadFromUDP(buffer)
 
 		if err != nil {
+			error_chan <- err
 			udp_interface_check_error(err)
+			return
 		}
-		msg <- string(buffer[0:n]) //removed string()
+		msg <- buffer[0:n]
+		connection.SetReadDeadline(time.Now().Add(time.Second))
 	}
 }
 
-func Udp_interface_bcast(msg chan string) {
+func Udp_interface_bcast(data []byte) {
 	localAddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:40018")
 	udp_interface_check_error(err)
 
 	conn, err := net.DialUDP("udp", nil, localAddr)
 	udp_interface_check_error(err)
-
-	data := <-msg
 
 	if len(data) > 0 {
 		conn.Write([]byte(data))

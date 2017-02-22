@@ -26,7 +26,7 @@ func Udp_interface_init(portNr string) *net.UDPConn {
 	return conn
 }
 
-func Udp_interface_send(destinationIP string, msg chan []byte) { //removed string chan
+func Udp_interface_send(destinationIP string, data []byte) { //removed string chan
 	localAddr, err := net.ResolveUDPAddr("udp", port)
 	udp_interface_check_error(err)
 
@@ -34,30 +34,28 @@ func Udp_interface_send(destinationIP string, msg chan []byte) { //removed strin
 	udp_interface_check_error(err)
 	defer conn.Close()
 
-	data := <-msg
-
 	if len(data) > 0 {
-		conn.Write([]byte(data))
+		conn.Write(data)
 	}
 
 	time.Sleep(200 * time.Millisecond)
 }
 
-func Udp_interface_receive(msg chan []byte, portNr string, error_chan chan error, state int) {
+func Udp_interface_receive(msg chan []byte, portNr string, error_chan chan error) {
 	connection := Udp_interface_init(portNr)
 	connection.SetReadDeadline(time.Now().Add(time.Second))
 	buffer := make([]byte, 1024)
 
 	for {
 		defer connection.Close()
-		n, _, err := connection.ReadFromUDP(buffer) //senderIP
+		n, _, err := connection.ReadFromUDP(buffer)
 
 		if err != nil {
 			error_chan <- err
 			udp_interface_check_error(err)
 			return
 		}
-		msg <- buffer[0:n] //removed string()
+		msg <- buffer[0:n]
 		connection.SetReadDeadline(time.Now().Add(time.Second))
 	}
 }

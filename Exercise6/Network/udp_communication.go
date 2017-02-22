@@ -32,8 +32,6 @@ func udp_get_master_ip(is_master bool) string {
 
 //Only master
 func Udp_broadcast(msg_id string, elevator_nr int) {
-	fmt.Println("Udp_bcast connection 3")
-	fmt.Println("Communic: ", elevator_nr)
 	send_object := StandardData{}
 	send_object.IP, _ = udp_get_local_ip()
 	send_object.Msg_ID = msg_id
@@ -44,7 +42,6 @@ func Udp_broadcast(msg_id string, elevator_nr int) {
 
 	Udp_interface_bcast(send)
 
-	fmt.Println("Udp_bcast connection 1")
 	time.Sleep(200 * time.Millisecond)
 }
 
@@ -72,12 +69,11 @@ func udp_send_is_alive(destination_ip string) {
 //Only slaves
 func udp_send_order_executed(order_nr int, is_master bool) {
 	order := StandardData{}
-	chan_order_executed := make(chan []byte)
 	order.Order_executed = order_nr
 
-	chan_order_executed <- Udp_struct_to_json(order)
+	send := Udp_struct_to_json(order)
 
-	Udp_interface_send(udp_get_master_ip(is_master), chan_order_executed)
+	Udp_interface_send(udp_get_master_ip(is_master), send)
 }
 
 //Only master
