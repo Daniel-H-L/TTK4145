@@ -31,7 +31,7 @@ func udp_get_master_ip(is_master bool) string {
 }
 
 //Only master
-func Udp_broadcast(msg_id string, elevator_nr int, chan_udp_bcast chan []byte) {
+func Udp_broadcast(msg_id string, elevator_nr int) {
 	fmt.Println("Udp_bcast connection 3")
 	fmt.Println("Communic: ", elevator_nr)
 	send_object := StandardData{}
@@ -41,10 +41,9 @@ func Udp_broadcast(msg_id string, elevator_nr int, chan_udp_bcast chan []byte) {
 	fmt.Println("Elev_nr: ", send_object.Order_executed)
 
 	send := Udp_struct_to_json(send_object)
-	go func() {
-		chan_udp_bcast <- send
-	}()
-	Udp_interface_bcast(chan_udp_bcast)
+
+	Udp_interface_bcast(send)
+
 	fmt.Println("Udp_bcast connection 1")
 	time.Sleep(200 * time.Millisecond)
 }
@@ -83,13 +82,25 @@ func udp_send_order_executed(order_nr int, is_master bool) {
 
 //Only master
 func Udp_receive_order_executed(chan_order_executed chan int, chan_received_msg chan []byte, portNr string, chan_error chan error, state int) {
-	go Udp_interface_receive(chan_received_msg, portNr, chan_error, state)
+	err_chan2 := make(chan error, 1)
+	go Udp_interface_receive(chan_received_msg, portNr, err_chan2, state)
 
-	received := <-chan_received_msg
-	data := Udp_json_to_struct(received, 1024)
+	for {
+		select {
+		case received := <-chan_received_msg:
 
-	chan_order_executed <- data.Order_executed
-	fmt.Println("Received: ", data.Order_executed)
+			data := Udp_json_to_struct(received, 1024)
+
+			//chan_order_executed <- data.Order_executed
+			fmt.Println("Received: ", data.Order_executed)
+
+		case err := <-err_chan2:
+			fmt.Println("Error detected\n")
+			chan_error <- err
+			return
+		}
+	}
+
 }
 
 //Only master

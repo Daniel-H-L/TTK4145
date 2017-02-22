@@ -72,7 +72,7 @@ func start() {
 
 func primary_bcast(message MSG) {
 	localAddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:31800")
-	udp_interface_check_error(err)
+	Udp_interface_check_error(err)
 	conn, err := net.DialUDP("udp", nil, localAddr)
 	Udp_interface_check_error(err)
 	defer conn.Close()

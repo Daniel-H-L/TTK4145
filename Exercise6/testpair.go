@@ -30,30 +30,27 @@ func start() {
 	conn.Close()
 }
 
-func master_bcast(bcast_chan chan []byte, message Network.StandardData) {
-	Network.Udp_broadcast("", message.Order_executed, bcast_chan)
+func master_bcast(message Network.StandardData) {
+	Network.Udp_broadcast("", message.Order_executed)
 	time.Sleep(200 * time.Millisecond)
 }
 
 func slave_backup(ex_chan chan int, rec_chan chan []byte, err_chan chan error, state int) {
 	go Network.Udp_receive_order_executed(ex_chan, rec_chan, ":40018", err_chan, state)
-
-	go func() {
-		err := <-err_chan
-		if err != nil {
-			State = 0
-		} else {
-		}
-	}()
+	fmt.Println("Waiting for error\n")
+	err := <-err_chan
+	fmt.Println("Error received\n")
+	if err != nil {
+		State = 0
+	}
 }
 
 func main() {
 	State = 0
 
-	brcast_chan := make(chan []byte)
-	rec_chan := make(chan []byte)
-	exec_chan := make(chan int)
-	err_chan := make(chan error)
+	rec_chan := make(chan []byte, 1)
+	exec_chan := make(chan int, 1)
+	err_chan := make(chan error, 1)
 
 	message := Network.StandardData{}
 	message.Order_executed = 3
@@ -61,16 +58,21 @@ func main() {
 	for {
 		switch State {
 		case 0:
+			fmt.Println("Start\n")
+
 			start()
+
 		case 1:
 			for {
 				time.Sleep(200 * time.Millisecond)
 				fmt.Println("Master ready to send...")
-				master_bcast(brcast_chan, message)
+				master_bcast(message)
 				fmt.Println("Sent: ", message.Order_executed)
 			}
 		case 2:
+			fmt.Println("Slave\n")
 			slave_backup(exec_chan, rec_chan, err_chan, State)
+
 		}
 	}
 }

@@ -53,22 +53,22 @@ func Udp_interface_receive(msg chan []byte, portNr string, error_chan chan error
 		n, _, err := connection.ReadFromUDP(buffer) //senderIP
 
 		if err != nil {
-			go func() { error_chan <- err }()
+			error_chan <- err
 			udp_interface_check_error(err)
+			return
 		}
 		msg <- buffer[0:n] //removed string()
+		connection.SetReadDeadline(time.Now().Add(time.Second))
 	}
 }
 
-func Udp_interface_bcast(msg chan []byte) {
+func Udp_interface_bcast(data []byte) {
 	localAddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:40018")
 	udp_interface_check_error(err)
 
 	conn, err := net.DialUDP("udp", nil, localAddr)
 	udp_interface_check_error(err)
 	defer conn.Close()
-
-	data := <-msg
 
 	if len(data) > 0 {
 		conn.Write([]byte(data))
