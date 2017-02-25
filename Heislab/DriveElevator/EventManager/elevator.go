@@ -1,11 +1,4 @@
-package driver
-
-import (
-	"fmt"
-	"unsafe"
-)
-
-import "C"
+package EventManager
 
 /*
 #cgo CFLAGS: -std=c11
@@ -13,6 +6,7 @@ import "C"
 #include "elev.h"
 #include "stdio.h"
 */
+import "C"
 
 //Translate enum from elev.h
 type MotorDirection int
@@ -42,18 +36,18 @@ func Elevator_set_button_lamp(button ElevatorButton, floor int, value int) {
 	C.elev_set_button_lamp(C.elev_button_type_t(button), C.int(floor), C.int(value))
 }
 
-func Elevator_set_floor_indicator(int floor) {
+func Elevator_set_floor_indicator(floor int) {
 	C.elev_set_floor_indicator(C.int(floor))
 }
 
-func Elevator_set_door_open_lamp(int value) {
+func Elevator_set_door_open_lamp(value int) {
 	C.elev_set_door_open_lamp(C.int(value))
 }
 
-func Elevator_get_button_signal(button ElevatorButton, floor int) {
-	return int(C.elev_get_button_signal(C.elev_get_button_signal(button), C.int(floor)))
+func Elevator_get_button_signal(button ElevatorButton, floor int) int {
+	return int(C.elev_get_button_signal(C.elev_button_type_t(button), C.int(floor)))
 }
 
-func Elevator_get_floor_sensor_signal() {
+func Elevator_get_floor_sensor_signal() int {
 	return int(C.elev_get_floor_sensor_signal())
 }

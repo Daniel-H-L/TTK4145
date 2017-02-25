@@ -31,11 +31,10 @@ func udp_get_master_ip(chan_is_master chan bool) string {
 }
 
 //Only master
-func Udp_broadcast(msg_id string, elevator_nr int) {
+func Udp_broadcast(msg_id string) {
 	send_object := StandardData{}
 	send_object.IP, _ = udp_get_local_ip()
 	send_object.msg_ID = msg_id
-	send_object.elevator_nr = elevator_nr
 
 	send := Udp_struct_to_json(send_object)
 
@@ -43,7 +42,7 @@ func Udp_broadcast(msg_id string, elevator_nr int) {
 	time.Sleep(200 * time.Millisecond)
 }
 
-func udp_send_is_alive(destination_ip string) {
+func Udp_send_is_alive(destination_ip string) {
 	alive := StandardData{}
 	alive.IP, _ = udp_get_local_ip()
 	send := Udp_struct_to_json(alive)
@@ -54,7 +53,7 @@ func udp_send_is_alive(destination_ip string) {
 	}
 }
 
-func udp_receive_is_alive(chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_error chan error) {
+func Udp_receive_is_alive(chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_error chan error) {
 	chan_local_err := make(chan error, 1)
 	go Udp_interface_receive(chan_received_msg, portNr, chan_error)
 
