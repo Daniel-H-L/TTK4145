@@ -60,8 +60,12 @@ func Udp_receive_is_alive(chan_received_msg chan []byte, chan_is_alive chan stri
 	for {
 		select {
 		case received := <-chan_received_msg:
-			data := Udp_json_to_struct(received)
-			chan_is_alive <- data.IP //Trenger vi dette???
+			if received != nil {
+				data := Udp_json_to_struct(received)
+				chan_is_alive <- data.IP //Trenger vi dette???
+			} else {
+				chan_is_alive <- string()
+			}
 		case err := <-chan_local_err:
 			chan_error <- err
 			return

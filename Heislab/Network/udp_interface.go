@@ -45,14 +45,15 @@ func Udp_interface_receive(msg chan string, portNr string, chan_error chan error
 	connection.SetReadDeadline(time.Now().Add(time.Second))
 	buffer := make([]byte, 1024)
 
+	defer connection.Close()
 	for {
-		defer connection.Close()
 		n, _, err := connection.ReadFromUDP(buffer)
 
 		if err != nil {
+			msg <- nil
 			error_chan <- err
 			udp_interface_check_error(err)
-			return
+			continue
 		}
 		msg <- buffer[0:n]
 		connection.SetReadDeadline(time.Now().Add(time.Second))
