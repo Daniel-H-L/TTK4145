@@ -48,7 +48,7 @@ int should_stop(dir_t dir, int current_floor) {
 
 
     
-void delete_q() { 
+void delete_queue() { 
 	int m;
 	int n;
 	for (m = 0; m < 3; m++) {

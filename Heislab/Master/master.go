@@ -3,62 +3,54 @@ package Master
 import (
 	"./Network"
 	"fmt"
+	"time"
 )
 
 type NewOrder struct {
 	floor     int
 	direction int //endre til C-definert variabeltype
-	priority  int
-	order_nr  int
+	//priority  int
+	order_nr int
 }
 
 type LocalOrder struct {
 	is_inside_order bool
-	floor           int //endre til C-typen
+	floor           int
 	direction       int //endre til C-typen
 }
 
 type StandardData struct {
-	IP     string
-	Msg_ID string
-	//is_master         bool
-	Is_alive       bool //overflødig?
+	IP             string
+	Msg_ID         string
+	Is_alive       bool
 	Order_executed int
-	Elevator_nr    int //overflødig?
 	Descendant_nr  int
 	New_order      NewOrder
 	Local_order    LocalOrder
-	//last_floor Floor
+	Last_floor     int
 	//dir
 	//backup ???
 }
 
-// type Participants bool
+type Is_alive bool
 
-// const (
-// 	MASTER Participants = True
-// 	SLAVE1 Participants = False
-// 	SLAVE2 Participants = False
-// )
+type Elevator struct {
+	Is_master    bool
+	IP           string
+	Alive        Is_alive
+	Participants int
+	Descendant   int
+}
 
-type Participants string
-
-// type Is_alive bool
-
-const (
-	MASTER Participants = ""
-	SLAVE1 Participants = ""
-	SLAVE2 Participants = ""
-)
-
-// const (
-// 	MASTER Is_alive = False
-// 	SLAVE1 Is_alive = False
-// 	SLAVE2 Is_alive = False
-// )
+var Master Elevator
+var Slave1 Elevator
+var Slave2 Elevator
 
 func master_init() {
 	fmt.Println("Master init...")
+	Master.Is_master = true
+	Master.IP, _ = Network.Udp_get_local_ip()
+	Master.Participants = 0
 
 	chan_is_alive := make(chan string, 1)
 	chan_received_msg := make(chan []byte, 1)
@@ -71,14 +63,23 @@ func master_init() {
 
 	//broadcast IP
 	Network.Udp_broadcast("", 1)
-	//decide descendantnr
+	//detect slaves
 }
 
-func master_change_to_slave() {
-	//
-}
-
-func master_decide_descendant_nr() {
+func master_decide_descendant_nr() { //Kan denne heller legges til i detect_slave_alive???
+	if Master.Participants == 1 {
+		if Slave1.Alive == true {
+			Slave1.Descendant = 1
+		} else {
+			Slave2.Descendant = 1
+		}
+	} else if Master.Participants == 2 {
+		Slave1.Descendant = 1
+		Slave2.Descendant = 2
+	} else {
+		Slave1.Descendant = 0
+		Slave2.Descendant = 0
+	}
 
 }
 
@@ -90,15 +91,45 @@ func master_detect_slave_alive(chan_rec_msg chan []byte, chan_is_alive chan stri
 		//DO SOMETHING
 	}
 	slave_ip := <-chan_is_alive
-	if SLAVE1 == "" {
-		SLAVE1 = slave_ip
-	} else if SLAVE2 == "" {
-		SLAVE2 = slave_ip
+	switch Master.Participants {
+	case 0:
+		Slave1.Alive = true
+		Slave1.IP = slave_ip
+		Master.Participants += 1
+	case 1:
+		if Slave1.Alive == true {
+			Slave2.Alive = true
+			Slave2.IP = slave_ip
+			Master.Participants += 1
+		} else {
+			Slave1.Alive = true
+			Slave1.IP = slave_ip
+			Master.Participants += 1
+		}
+	case 2:
+		Slave1.Alive = true
+		Slave2.Alive = true
 	}
 
 	for {
 		//Sleep
-		//Sjekk kont for levende slaver. dersom noen e døde --> endre Is_alive variabelen.
+		time.Sleep(5 * time.Second)
+		//Sjekk kont for levende slaver. dersom noen e døde --> endre Alive variabelen.
+
+		//Master.Participants -= 1
 	}
 
+}
+
+func master_resend() {
+
+}
+
+func master_order_executed() { //Snakker med master_queue-modulen. Feilhondtering.
+
+}
+
+func Master_send_is_alive() {
+	Network.Udp_send_is_alive(Slave1.IP)
+	Network.Udp_send_is_alive(Slave2.IP)
 }
