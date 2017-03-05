@@ -162,7 +162,7 @@ func Udp_send_local_order(local_order LocalOrder, dest_ip string) {
 }
 
 //Only master
-func udp_receive_local_order(chan_local_order chan LocalOrder, chan_received_msg chan []byte, portNr string, chan_error chan error) {
+func Udp_receive_local_order(chan_local_order chan LocalOrder, chan_received_msg chan []byte, portNr string, chan_error chan error) {
 	chan_local_err := make(chan error, 1)
 	go Udp_interface_receive(chan_received_msg, portNr, chan_local_err)
 

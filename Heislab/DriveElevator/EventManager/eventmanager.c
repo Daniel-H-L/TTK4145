@@ -96,13 +96,13 @@ int check_button_signal() {
         if (i != 0) {
             if (elev_get_button_signal(BUTTON_CALL_DOWN, i) == 1) {
                 orders[1][i] = 1;
-		return 1; 
+		return 2; 
             }
         }
         
         if (elev_get_button_signal(BUTTON_COMMAND, i) == 1) {
 		orders[2][i] = 1;
-		return 1; 
+		return 3; 
 		
         }
     }

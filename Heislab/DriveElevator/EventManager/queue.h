@@ -1,9 +1,6 @@
 #ifndef __Q_H__
 #define __Q_H__
 
-#include "statemachine.h"
-
-
 int orders[3][4];
 
 
@@ -17,8 +14,7 @@ void delete_queue();
 
 void delete_orders(int current_floor); 
 
-
-
+void queue_add_order(int floor, int button);
 
 
 #endif

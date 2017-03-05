@@ -27,3 +27,11 @@ func Eventmanager_door_timeout() int {
 func Eventmanager_check_button_signal() int {
 	return int(C.check_button_signal())
 }
+
+func Eventmanager_get_new_order(floor int, button int) (int, int) {
+	return floor, button
+}
+
+func Eventmanager_add_new_order(floor int, button int) {
+	C.queue_add_new_order(floor, button)
+}

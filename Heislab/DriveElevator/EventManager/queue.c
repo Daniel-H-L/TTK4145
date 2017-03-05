@@ -1,5 +1,4 @@
 #include "elev.h"
-#include "statemachine.h"
 #include <stdio.h>
 
 int orders[3][4] = {{0,0,0,0},{0,0,0,0},{0,0,0,0}};
@@ -45,8 +44,6 @@ int should_stop(dir_t dir, int current_floor) {
 	}
 	return 0;
 }
-
-
     
 void delete_queue() { 
 	int m;
@@ -63,4 +60,8 @@ void delete_orders(int current_floor) {
 	for (i = 0; i < 3; i++) {
 		orders[i][current_floor] = 0;
 	} 
+}
+
+void queue_add_order(int floor, int button) {
+	orders[button][floor] += 1;
 }

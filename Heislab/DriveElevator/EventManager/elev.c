@@ -140,13 +140,3 @@ int elev_get_floor_sensor_signal(void) {
         return -1;
     }
 }
-
-
-int elev_get_stop_signal(void) {
-    return io_read_bit(STOP);
-}
-
-
-int elev_get_obstruction_signal(void) {
-    return io_read_bit(OBSTRUCTION);
-}

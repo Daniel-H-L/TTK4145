@@ -6,16 +6,20 @@ import (
 	"time"
 )
 
-type Master struct {
-	Slaves       [Network.Slave]time.Time
-	IP           string
-	Participants int
-}
-
 type Slave struct {
 	IP         string
 	Alive      bool
 	Descendant int
+	Last_floor int
+	Direction  int
+}
+
+type Master struct {
+	Slaves       [Network.Slave]time.Time
+	IP           string
+	Participants int
+	Last_floor   int
+	Direction    int
 }
 
 func (master *Master) master_init() {
@@ -81,3 +85,5 @@ func (master *Master) Master_send_is_alive() {
 		Network.Udp_send_is_alive(s.IP)
 	}
 }
+
+//Må oppdatere direction og floor variablene hos master og slaver.
