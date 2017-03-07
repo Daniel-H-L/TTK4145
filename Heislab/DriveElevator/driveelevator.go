@@ -8,9 +8,16 @@ import (
 
 func Driveelevator_get_new_order(chan_new_order chan Orders) {
 	order := EventManager.Eventmanager_check_button_signal()
-	if order.dir != 2 {
+	if order.dir != -1 {
 		//New order is detected
 		chan_new_order <- order
+	}
+}
+
+func Driveelevator_order_executed(chan_order_executed chan int) {
+	floor := Statemachine_send_deleted_order()
+	if floor != -1 {
+		chan_order_executed <- floor
 	}
 }
 

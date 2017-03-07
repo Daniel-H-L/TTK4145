@@ -11,5 +11,7 @@ int door_time_out2();
 
 int check_button_signal2();
 
+bool stop_mechanical_reason();
+
 
 #endif

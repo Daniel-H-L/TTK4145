@@ -92,19 +92,19 @@ return 0;
 struct NewOrders check_button_signal2() {
     int i;
     NewOrders order;
-    order.dir = 2;
+    order.dir = -1;
     for (i = 0; i < 4; i++) {
         if (i != 3) {
             if (elev_get_button_signal(BUTTON_CALL_UP, i) == 1) {
                 order.floor = i;
-                order.dir = 1;
+                order.dir = 0;
                 order.is_inside = false;
             }
         }
         if (i != 0) {
             if (elev_get_button_signal(BUTTON_CALL_DOWN, i) == 1) {
                 order.floor = i;
-                order.dir = -1;
+                order.dir = 1;
                 order.is_inside = false; 
             }
         }
@@ -112,9 +112,30 @@ struct NewOrders check_button_signal2() {
         if (elev_get_button_signal(BUTTON_COMMAND, i) == 1) {
             orders[2][i] = 1;
             order.floor = i;
-            order.dir = 0;
+            order.dir = 2;
             order.is_inside = true;
         }
     }
 	return order;     
+}
+
+bool stop_mechanical_reason(){
+    timer_start();
+    if (nr_of_orders_in_queue()!= 0 && state==STOP && timer_isTimeOut==1) {
+
+        timer_stop();
+        timer_start();
+        
+        if(timer_isTimeOut()==1 && state==STOP){
+            timer_stop();
+            return true;
+        }
+        
+        else{
+            return false;
+        }
+    }
+    else(timer_isTimeOut()==1 && set_current_floot()==0 && state==STOP){
+        return true;
+     }
 }

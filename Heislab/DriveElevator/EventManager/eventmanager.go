@@ -44,3 +44,7 @@ func Eventmanager_add_new_order(floor int, button int) {
 	C.queue_add_new_order(floor, button)
 	Statemachine_set_button_lights()
 }
+
+func Eventmanager_stop_cause_mechanical_reason() bool {
+	return bool(C.stop_cause_mechanical_reason())
+}

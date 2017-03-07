@@ -98,25 +98,25 @@ int arrived_floor(int new_floor) {
 			timer_start();
 			delete_orders(current_floor);
 			elev_set_door_open_lamp(1);
-			return 1;
+			return current_floor;
 		}
 		else if (dir == DOWN){
 			set_state_and_dir(STOP, DOWN); 
 			timer_start();
 			delete_orders(current_floor);
 			elev_set_door_open_lamp(1);
-			return 1;
+			return current_floor;
 		}	
 		else if (dir == STILL){
 			set_state_and_dir(STOP, STILL); 
 			timer_start();
 			delete_orders(current_floor);
 			elev_set_door_open_lamp(1);
-			return 1;
+			return current_floor;
 		}
 			
 	}	
-	return 0;
+	return -1;
 }
 
 

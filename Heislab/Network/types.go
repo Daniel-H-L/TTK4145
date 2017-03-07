@@ -1,27 +1,21 @@
 package Network
 
 type NewOrder struct {
-	floor     int
-	direction int //endre til C-definert variabeltype
-	//priority  int
-	order_nr int
-}
-
-type LocalOrder struct {
-	is_inside_order bool
-	floor           int
-	direction       int //endre til C-typen
+	floor        int //0-3
+	direction    int //0-2
+	is_inside    bool
+	is_new_order bool
+	is_executed  bool
+	in_progess   bool
 }
 
 type StandardData struct {
-	IP             string
-	Msg_ID         string
-	Is_alive       bool
-	Order_executed int
-	Descendant_nr  int
-	New_order      NewOrder
-	Local_order    LocalOrder
-	Last_floor     int
+	IP            string
+	Msg_ID        string
+	Is_alive      bool
+	Descendant_nr int
+	Order         NewOrder
+	Last_floor    int
 	//dir
 	//backup ???
 }

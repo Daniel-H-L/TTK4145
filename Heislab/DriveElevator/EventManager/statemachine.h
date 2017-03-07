@@ -2,7 +2,6 @@
 #define __STATEMACHINE_H__
 
 typedef enum {
-        EMERGENCY,
     	IDLE,
     	MOVING,
     	STOP 
@@ -29,10 +28,6 @@ void set_button_lights();
 void set_state_and_dir(state_t s, dir_t d);
 
 int arrived_floor(int floor);
-
-int emergency_on();
-
-int emergency_off();
 
 
 #endif

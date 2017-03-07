@@ -31,3 +31,7 @@ func Statemachine_set_state_and_dir(state ElevatorState, dir MotorDirection) int
 func Statemachine_arrived_at_floor(floor int) int {
 	return int(C.arrived_floor(C.int(floor)))
 }
+
+func Statemachine_send_deleted_order() int {
+	return C.arrived_floor()
+}

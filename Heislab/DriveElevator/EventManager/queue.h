@@ -16,5 +16,7 @@ void delete_orders(int current_floor);
 
 void queue_add_new_order(int floor, int button);
 
+int nr_of_orders_in_queue();
+
 
 #endif
