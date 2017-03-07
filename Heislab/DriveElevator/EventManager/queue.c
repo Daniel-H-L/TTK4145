@@ -62,6 +62,12 @@ void delete_orders(int current_floor) {
 	} 
 }
 
-void queue_add_order(int floor, int button) {
-	orders[button][floor] += 1;
+void queue_add_new_order(int floor, int button) {
+	if button == 1 { //dir = UP
+		orders[0][floor] += 1;
+	} else if button == -1 { //dir = DOWN
+		orders[1][floor] += 1
+	} else if button == 0 { //inside order
+		orders[2][floor] += 1
+	}
 }

@@ -15,7 +15,7 @@ type Slave struct {
 }
 
 type Master struct {
-	Slaves       [Network.Slave]time.Time
+	Slaves       [Slave]time.Time
 	IP           string
 	Participants int
 	Last_floor   int
@@ -76,8 +76,8 @@ func master_resend() {
 
 }
 
-func master_order_executed() { //Snakker med master_queue-modulen. Feilhåndtering.
-
+func master_order_executed(chan_order_executed chan int, chan_received_msg chan []byte, port_nr int, chan_error chan error) { //Snakker med master_queue-modulen. Feilhåndtering.
+	Master_queue_receive_order_executed(chan_order_executed, chan_received_msg, port_nr, chan_error)
 }
 
 func (master *Master) Master_send_is_alive() {

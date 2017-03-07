@@ -7,7 +7,10 @@ import (
 
 func Master_queue_receive_order_executed(chan_order_executed chan int, chan_received_msg chan []byte, port_nr int, chan_error chan error) int {
 	go Network.Udp_receive_order_executed(chan_order_executed, chan_received_msg, port_nr, chan_error)
-	return <-chan_order_executed
+	err <- chan_error
+	if err != nil {
+		return <-chan_order_executed
+	}
 }
 
 func (master *Master) Master_queue_delegate_order(order NewOrder) string {
@@ -41,14 +44,20 @@ func master_queue_detect_local_orders_from_slaves(chan_local_order chan LocalOrd
 	return <-chan_local_order
 }
 
-func master_queue_detect_local_orders() {
-	floor, button := DriveElevator.Eventmanager_get_new_order()
-	if button != 0 {
-		if button == 3 {
-			//Inside order
-			//Hvordan få tak i floor og button??
-			DriveElevator.Eventmanager_add_new_order(floor, button)
-		}
+func master_queue_receive_new_order(master *Master, chan_new_order chan Driveelevator.Orders) {
+	DriveElevator.Driveelevator_get_new_order(chan_new_order)
+	new_order := <-chan_new_order
 
+	if new_order.is_inside == true {
+		DriveElevator.Eventmanager_add_new_order(new_order.floor, new_order.dir)
+	} else {
+		order := Network.NewOrder{new_order.floor, new_order.dir, 0}
+		elevator := master.Master_queue_delegate_order(order)
+
+		if elevator != Network.Udp_get_local_ip() {
+			Network.Udp_send_new_order(order, elevator)
+		} else {
+			DriveElevator.Eventmanager_add_new_order(new_order.floor, new_order.dir)
+		}
 	}
 }

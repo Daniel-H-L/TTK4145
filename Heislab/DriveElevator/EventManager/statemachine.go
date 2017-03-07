@@ -16,7 +16,7 @@ const (
 	STOP   ElevatorState = 2
 )
 
-func Statemachine_set_current_floor() int {
+func Statemachine_set_current_floor(chan_current_floor chan int) int {
 	return int(C.set_current_floor())
 }
 
@@ -24,7 +24,7 @@ func Statemachine_set_button_lights() {
 	C.set_button_lights()
 }
 
-func Statemachine_set_state_and_dir(state ElevatorState, dir MotorDirection) {
+func Statemachine_set_state_and_dir(state ElevatorState, dir MotorDirection) int {
 	C.set_state_and_dir(C.state_t(state), C.dir_t(dir))
 }
 

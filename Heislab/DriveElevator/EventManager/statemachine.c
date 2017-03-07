@@ -88,24 +88,6 @@ void set_state_and_dir(state_t s, dir_t d){
 		    state = MOVING;
 		}
 	}
-	else if(s == EMERGENCY){
-        if (d == UP) {
-            elev_set_motor_direction(DIRN_STOP);
-            dir = UP;
-            state = EMERGENCY;
-        }
-        else if (d == DOWN){
-            elev_set_motor_direction(DIRN_STOP);
-            dir = DOWN;
-            state = EMERGENCY;
-        }
-        else if(d == STILL){
-            elev_set_motor_direction(DIRN_STOP);
-            dir = STILL;
-            state = EMERGENCY;
-        }
-	}
-
 }
 
 int arrived_floor(int new_floor) { 
