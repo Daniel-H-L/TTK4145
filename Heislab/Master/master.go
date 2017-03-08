@@ -22,12 +22,12 @@ type Master struct {
 	Direction    int
 }
 
-func (master *Master) master_init() {
+func (master *Master) master_init(backup Network.Backup) {
 	fmt.Println("Master init...")
 	master.IP = Network.Udp_get_local_ip()
 	master.Participants = 0
 
-	go Network.Udp_broadcast("")
+	go Network.Udp_broadcast(master.IP)
 }
 
 func master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, port_nr string, chan_error chan error) {

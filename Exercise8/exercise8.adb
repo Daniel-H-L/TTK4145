@@ -89,12 +89,13 @@ procedure exercise8 is
                     when Count_Failed =>
                     Manager.Signal_Abort;
                 end;
+                Manager.Finished;
             end select;
                 -------------------------------------------
                 -- PART 2: Roll back to previous value here
                 -------------------------------------------
-            Manager.Finished; 
-
+             
+            Put_Line ("  Worker" & Integer'Image(Initial) & " comitting" & Integer'Image(Num));
             Prev := Num;
             delay 0.5;
 

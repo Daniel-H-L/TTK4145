@@ -1,4 +1,5 @@
 #include "elev.h"
+#include "statemachine.h"
 #include <stdio.h>
 
 int orders[3][4] = {{0,0,0,0},{0,0,0,0},{0,0,0,0}};
@@ -58,19 +59,21 @@ void delete_queue() {
 void delete_orders(int current_floor) { 
 	int i;
 	for (i = 0; i < 3; i++) {
-		if orders[i][current_floor] != 0 {
+		if (orders[i][current_floor] != 0) {
 			orders[i][current_floor] = 0;
 		}
 	} 
 }
 
 void queue_add_new_order(int floor, int button) {
-	if button == 1 { //dir = UP
+	if (button == 0) { //dir = UP
 		orders[0][floor] = 1;
-	} else if button == -1 { //dir = DOWN
-		orders[1][floor] = 1
-	} else if button == 0 { //inside order
-		orders[2][floor] = 1
+	} 
+	else if (button == 1) { //dir = DOWN
+		orders[1][floor] = 1;
+	} 
+	else if (button == 2) { //inside order
+		orders[2][floor] = 1;
 	}
 }
 
@@ -80,7 +83,7 @@ int nr_of_orders_in_queue() {
 	int nr_of_orders=0;
 	for(m=0; m < 3; m++){
 		for(n=0;n < 4; n++){
-			if orders[m][n]!=0{
+			if (orders[m][n]!=0) {
 				nr_of_orders++;
 			}
 		}

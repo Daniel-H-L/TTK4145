@@ -52,7 +52,7 @@ func Udp_receive_is_alive(chan_received_msg chan []byte, chan_is_alive chan stri
 		case received := <-chan_received_msg:
 			if received != nil {
 				data := Udp_json_to_struct(received)
-				chan_is_alive <- data.IP //Trenger vi dette???
+				chan_is_alive <- data.IP
 			} else {
 				chan_is_alive <- string()
 			}
@@ -82,9 +82,10 @@ func Udp_receive_order_status(chan_order_status chan NewOrder, chan_received_msg
 	for {
 		select {
 		case received := <-chan_received_msg:
-			data := Udp_json_to_struct(received)
-			chan_order_executed <- data.Order_executed
-
+			if received != nil {
+				data := Udp_json_to_struct(received)
+				chan_order_executed <- data.Order_executed
+			}
 		case err := <-chan_local_err:
 			chan_error <- err
 			return
@@ -119,7 +120,7 @@ func Udp_receive_descendant_nr(chan_descendant_nr chan int, chan_received_msg ch
 }
 
 //Only master
-func Udp_send_new_order(new_order NewOrder, dest_ip string, chan_new_order chan NewOrder) {
+func Udp_send_new_order(new_order NewOrder, dest_ip string) {
 	order := StandardData{}
 	order.Order = new_order
 	send := Udp_struct_to_json(order)
@@ -144,26 +145,27 @@ func Udp_receive_new_order(chan_new_order chan NewOrder, chan_received_msg chan 
 	}
 }
 
-// func Udp_send_local_order(local_order LocalOrder, dest_ip string) {
-// 	order := StandardData{}
-// 	order.local_order = local_order
-// 	send := Udp_struct_to_json(order)
-// 	Udp_interface_send(dest_ip, chan_local_order)
-// }
+func Udp_send_state(dir int, floor int, dest_ip string) {
+	state := StandardData{}
+	state.Dir = dir
+	state.Last_floor = floor
+	send := Udp_struct_to_json(send)
+	Udp_interface_send(dest_ip, send)
+}
 
-// //Only master
-// func Udp_receive_local_order(chan_local_order chan LocalOrder, chan_received_msg chan []byte, portNr string, chan_error chan error) {
-// 	chan_local_err := make(chan error, 1)
-// 	go Udp_interface_receive(chan_received_msg, portNr, chan_local_err)
+func Udp_receive_state(chan_elev_state chan StandardData, chan_received_msg chan []byte, portNr string, chan_error chan error) {
+	chan_local_err := make(chan error, 1)
+	go Udp_interface_receive(chan_received_msg, portNr, chan_local_err)
 
-// 	for {
-// 		select {
-// 		case received := <-chan_received_msg:
-// 			data := Udp_json_to_struct(received)
+	for {
+		select {
+		case received := <-chan_received_msg:
+			data := Udp_json_to_struct(received)
+			chan_new_order <- data.New_order
 
-// 		case err := <-chan_local_err:
-// 			chan_error <- err
-// 			return
-// 		}
-// 	}
-// }
+		case err := <-chan_local_err:
+			chan_error <- err
+			return
+		}
+	}
+}
