@@ -6,16 +6,18 @@ import (
 	"time"
 )
 
-var Master_IP string
-var Descendant_nr int
-var Change_to_master bool
+func Slave_init(chan_received_msg chan []byte, chan_master_bcast chan string, portNr string, chan_error chan error, chan_change_to_master chan bool, Master_IP *string) {
+	*Master_IP = slave_listen_for_master(chan_received_msg, chan_master_bcast, portNr, chan_error)
 
-func Slave_init(chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_error chan error) {
-	Master_IP = slave_listen_for_master(chan_received_msg, chan_is_alive, portNr, chan_error)
-}
-
-func Slave_send_is_alive() {
-	Network.Udp_send_is_alive(Master_IP)
+	if Network.Udp_get_local_ip() >= Master_IP {
+		1 <- chan_change_to_master
+		*Master_IP = Udp_get_local_ip()
+	} else {
+		for {
+			Network.Udp_send_is_alive(Master_IP)
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
 }
 
 func slave_listen_for_master(chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_error chan error, chan_change_to_master chan bool) string {
@@ -39,39 +41,39 @@ func slave_listen_for_master(chan_received_msg chan []byte, chan_is_alive chan s
 	return ip
 }
 
-func Slave_drive_elevator(chan_new_order chan Network.NewOrder, chan_elev_order chan Driveelevator.Orders, chan_received_msg chan []byte, port_nr string, chan_error chan error, chan_change_to_master chan bool) {
+func Slave_drive_elevator(chan_new_order chan Network.NewOrder, chan_elev_order chan Driveelevator.Orders, chan_received_msg chan []byte, port_nr string, chan_error chan error, chan_change_to_master chan bool, chan_descendant_nr chan int, chan_order_executed int, Master_IP *string, chan_source_ip string) {
 	go slave_receive_order_from_hw(chan_elev_order)
-	go Network.Udp_receive_new_order(chan_new_order, chan_received_msg, port_nr, chan_error)
+	go Network.Udp_receive_new_order(chan_new_order, chan_received_msg, port_nr, chan_error, chan_source_ip)
+	go Network.Udp_receive_descendant_nr(chan_descendant_nr, chan_received_msg, port_nr, chan_error)
+	go DriveElevator.Driveelevator_order_executed(chan_order_executed)
+
+	Descendant_nr := -1
+
 	for {
 		select {
-		case order := <-chan_new_order:
-			if order != nil {
-				DriveElevator.Eventmanager_add_new_order(order.floor, order.direction)
-			}
 		case elev_order := <-chan_elev_order:
 			if elev_order != nil {
 				order := Network.NewOrder{elev_order.floor, elev_order.dir, elev_order.is_inside, 1, 0, 0}
-				Slave_send_new_order(order)
+				Network.Udp_send_new_order(order, *Master_IP)
 			}
 		case master_order := <-chan_new_order:
 			if chan_order != nil {
 				DriveElevator.Eventmanager_add_new_order(master_order.floor, master_order.direction)
 			}
 		case change_to_master := <-chan_change_to_master:
+			if change_to_master == 1 {
+				return
+			}
+		case descendant := chan_descendant_nr:
+			if descendant != nil {
+				Descendant_nr = descendant
+			}
+		case executed := chan_order_executed:
+			floor := <-chan_order_status
+			order := NewOrder{floor, 0, 0, 0, 1, 0}
+			Network.Udp_send_order_status(order, Master_IP)
 		}
 	}
-}
-
-func Slave_send_order_executed(chan_order_executed chan int) {
-	DriveElevator.Driveelevator_order_executed(chan_order_executed)
-	floor := <-chan_order_status
-
-	order := NewOrder{}
-	order.floor = floor
-	order.is_new = false
-	order.is_executed = true
-	order.in_progess = false
-	Network.Udp_send_order_status(order, Master_IP)
 }
 
 func slave_receive_order_from_hw(chan_new_order chan Driveelevator.Orders) {
@@ -81,35 +83,10 @@ func slave_receive_order_from_hw(chan_new_order chan Driveelevator.Orders) {
 	}
 }
 
-func Slave_send_new_order(order NewOrder) {
-	Network.Udp_send_new_order(order, Master_IP)
-}
-
-func Slave_receive_descendant(chan_descendant_nr chan int, chan_received_msg chan []byte, port_nr string, chan_error chan error) {
-	go Network.Udp_receive_descendant_nr(chan_descendant_nr, chan_received_msg, port_nr, chan_error)
-	err := <-chan_error
-
-	if err == nil {
-		Descendant_nr := <-chan_descendant_nr
-	}
-}
-
-func Slave_mechanical_problem_send_to_master(order NewOrder) {
+func slave_mechanical_problem_send_to_master(order NewOrder) {
 	if Drive_elevator.Eventmanager_stop_cause_mechanical_problem() == true {
 		order.in_progress = false
 		order.is_executed = false
 		Network.Udp_send_order_status(order, Master_IP)
 	}
-}
-
-func Slave_run() bool {
-	Slave_init(chan_received_msg, chan_is_alive, ":40018", chan_error)
-
-	if Network.Udp_get_local_ip() > Master_IP {
-		return true
-	} else {
-		Slave_send_is_alive()
-		Slave_receive_descendant(chan_descendant_nr, chan_received_msg, port_nr, chan_error)
-	}
-
 }

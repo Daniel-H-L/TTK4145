@@ -10,9 +10,8 @@ package EventManager
 import "C"
 
 type Orders struct {
-	floor     int
-	dir       int
-	is_inside int
+	floor int
+	dir   int
 }
 
 func Eventmanager_new_order_in_empty_queue() int {
@@ -36,7 +35,6 @@ func Eventmanager_check_button_signal() Orders {
 	new_order_C := C.check_button_signal()
 	new_order.floor = int(new_order_C.floor)
 	new_order.dir = int(new_order_C.dir)
-	new_order.is_inside = int(new_order_C.is_inside)
 
 	return new_order
 }

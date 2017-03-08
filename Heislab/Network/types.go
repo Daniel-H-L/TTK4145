@@ -3,7 +3,6 @@ package Network
 type NewOrder struct {
 	floor        int //0-3
 	direction    int //0-2
-	is_inside    int
 	is_new_order bool
 	is_executed  bool
 	in_progess   bool

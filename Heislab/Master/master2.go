@@ -23,7 +23,7 @@ func (master *Master) master_init() {
 	master.IP = Network.Udp_get_local_ip()
 	master.Participants = 0
 
-	go Network.Udp_broadcast("")
+	go Network.Udp_broadcast(Network.Udp_get_local_ip())
 }
 
 func master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, port_nr string, chan_error chan error) {
@@ -74,10 +74,4 @@ func master_resend() {
 
 func master_order_executed() { //Snakker med master_queue-modulen. Feilhåndtering.
 
-}
-
-func (master *Master) Master_send_is_alive() {
-	for slave := range master.Slaves {
-		Network.Udp_send_is_alive(s.IP)
-	}
 }
