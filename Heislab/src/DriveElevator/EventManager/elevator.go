@@ -8,7 +8,6 @@ package EventManager
 */
 import "C"
 
-
 //Translate enum from elev.h
 type MotorDirection int
 type ElevatorButton int
@@ -33,7 +32,7 @@ func Elevator_set_motor_dir(direction int) {
 	C.elev_set_motor_direction(C.elev_motor_direction_t(direction))
 }
 
-func Elevator_set_button_lamp(button ElevatorButton, floor int, value int) {
+func Elevator_set_button_lamp(button int, floor int, value int) {
 	C.elev_set_button_lamp(C.elev_button_type_t(button), C.int(floor), C.int(value))
 }
 
@@ -52,4 +51,3 @@ func Elevator_get_button_signal(button int, floor int) int {
 func Elevator_get_floor_sensor_signal() int {
 	return int(C.elev_get_floor_sensor_signal())
 }
-

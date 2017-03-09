@@ -3,6 +3,7 @@ package Master
 import (
 	"../DriveElevator"
 )
+
 /*
 
 type Slave struct {
@@ -21,14 +22,12 @@ type Master struct {
 	Direction    int
 }
 
-func (master *Master) master_init() {
+func (master *Master) master_init(chan_kill chan bool) {
 	fmt.Println("Master init...")
 	master.IP,_ = Network.Udp_get_local_ip()
 	master.Participants = 0
-	for {
-		Network.Udp_broadcast(master.IP)
-		time.Sleep(50 * time.Millisecond)
-	}
+	go Network.Udp_broadcast(master.IP, chan_kill)
+	time.Sleep(50 * time.Millisecond)
 }
 
 func Master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, port_nr string, chan_error chan error, master_p *Master) {
@@ -70,13 +69,14 @@ func Master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, po
 		}
 	}
 
-}*/
+}
+*/
 
-func Master_write_backup(backup_p *Network.Backup, order DriveElevator.Button, source_ip string) [][]int {
+func Master_write_backup(backup_p *Network.Backup, button chan DriveElevator.Button, source_ip string, chan_set_lights chan [][]int) {
 	backup = *backup_p
 	var set_lights [][]int
 
-	for order := range backup.MainQueue{
+	for order := range backup.MainQueue {
 		if backup.MainQueue[order] == source_ip {
 			order.Orders[button.dir][button.floor] = 1
 		}
@@ -88,18 +88,76 @@ func Master_write_backup(backup_p *Network.Backup, order DriveElevator.Button, s
 			}
 		}
 	}
-	return set_lights
+	chan_set_lights <- set_lights
 }
 
-func Master_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button) {
-	for {
-		select {
-		case new_hw_order := <- chan_new_hw_order:
-			chan_new_master_order <- new_hw_order
-			Master_write_backup()
+func Master_reset_backup_queue(backup_p *Network.Backup, floor int, chan_set_lights chan [][]int) {
+	backup = *backup_p
+	var set_lights [][]int
+
+	for order := range backup.MainQueue {
+		for i := 0; i < 3; i++ {
+			order.Orders[i][floor] = 0
+		}
+		for i := 0; i < 3; i++ {
+			for j := 0; i < 4; i++ {
+				if order.Orders[i][j] == 1 {
+					set_lights[i][j] = 1
+				}
+			}
 		}
 	}
+	chan_set_lights <- set_lights
 }
+
+func Master_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, backup_p *Network.Backup, chan_source_ip chan string, chan_set_lights chan [][]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_state_slave chan int, chan_dir_slave chan int, chan_floor_slave chan int) {
+	backup := *backup_p
+	Master_IP := *Master_IP_p
+
+	go Udp_receive_state(chan_elev_state, chan_received_msg, portNr, chan_error, chan_kill, chan_source_ip)
+
+	for {
+		select {
+		case new_hw_order := <-chan_new_hw_order:
+			chan_new_master_order <- new_hw_order
+			source_ip := <-chan_source_ip
+			Master_write_backup(backup_p, new_hw_order, source_ip, chan_set_lights)
+			//Network.Udp_send_set_lights(chan_set_lights)
+		case executed := <-chan_order_executed:
+			Master_reset_backup_queue(backup_p, executed, chan_set_lights)
+			//Network.Udp_send_set_lights(chan_set_lights)
+		case state := <-chan_state:
+			for elev := range backup.MainQueue {
+				if backup.MainQueue[elev] == Master_IP {
+					elev.State = state
+				}
+			}
+		case dir := <-chan_dir:
+			for elev := range backup.MainQueue {
+				if backup.MainQueue[elev] == Master_IP {
+					elev.Direction = dir
+				}
+			}
+		case floor := <-chan_floor:
+			for elev := range backup.MainQueue {
+				if backup.MainQueue[elev] == Master_IP {
+					elev.Floor = floor
+				}
+			}
+		case status := <-chan_elev_state:
+			source_ip := <-chan_source_ip
+			for elev := range backup.MainQueue {
+				if backup.MainQueue[elev] == source_ip {
+					elev.State = status.State
+					elev.Floor = status.Floor
+					elev.Direction = status.Direction
+				}
+			}
+		}
+	}
+
+}
+
 /*
 func Master_drive_elevator(backup_p *Network.Backup, chan_new_order chan Network.NewOrder, chan_source_ip chan string, chan_received_msg chan []byte, port_nr string, chan_error chan error, master_p *Master, chan_order_executed chan int, chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button) {
 	go Network.Udp_receive_new_order(chan_new_order, chan_received_msg, port_nr, chan_error, chan_source_ip)
@@ -107,7 +165,7 @@ func Master_drive_elevator(backup_p *Network.Backup, chan_new_order chan Network
 	go Network.Udp_receive_order_status(chan_new_order, chan_received_msg, port_nr, chan_error, chan_source_ip)
 	backup := *backup_p
 	//master := *master_p
-	local_ip,_ := Network.Udp_get_local_ip() 
+	local_ip,_ := Network.Udp_get_local_ip()
 
 	for {
 		select {
