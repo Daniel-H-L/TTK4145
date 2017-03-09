@@ -1,21 +1,21 @@
 package Network
 
 type NewOrder struct {
-	floor        int //0-3
-	direction    int //0-2
-	is_new_order bool
-	is_executed  bool
-	in_progess   bool
+	Floor        int //0-3
+	Direction    int //0-2
+	Is_new_order int
+	Is_executed  int
+	In_progress   int
 }
 
-type Queue struct {
+type Queue struct{  
 	Orders    [3][4]int
 	Direction int
 	Floor     int
 }
 
 type Backup struct {
-	MainQueue [Queue]string
+	MainQueue map[Queue]string
 }
 
 type StandardData struct {

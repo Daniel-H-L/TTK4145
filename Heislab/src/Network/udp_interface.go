@@ -40,7 +40,7 @@ func Udp_interface_send(destinationIP string, data []byte) {
 	time.Sleep(200 * time.Millisecond)
 }
 
-func Udp_interface_receive(msg chan string, portNr string, chan_error chan error) {
+func Udp_interface_receive(msg chan []byte, portNr string, chan_error chan error) {
 	connection := udp_interface_init(portNr)
 	connection.SetReadDeadline(time.Now().Add(time.Second))
 	buffer := make([]byte, 1024)
@@ -51,7 +51,7 @@ func Udp_interface_receive(msg chan string, portNr string, chan_error chan error
 
 		if err != nil {
 			msg <- nil
-			error_chan <- err
+			chan_error <- err
 			udp_interface_check_error(err)
 			continue
 		}

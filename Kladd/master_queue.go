@@ -1,8 +1,8 @@
 package Master
 
 import (
-	"./DriveElevator"
-	"./Network"
+	"../DriveElevator"
+	"../Network"
 )
 
 // func Master_queue_receive_order_status(chan_order_executed chan NewOrder, chan_received_msg chan []byte, port_nr int, chan_error chan error, backup *Network.Backup, source_ip string) {

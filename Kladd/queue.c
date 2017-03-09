@@ -66,7 +66,7 @@ void delete_orders(int current_floor) {
 }
 
 void queue_add_new_order(int floor, int button) {
-	orders[button][floor] = 1
+	orders[button][floor] = 1;
 }
 
 int nr_of_orders_in_queue() {

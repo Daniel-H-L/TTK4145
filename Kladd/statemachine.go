@@ -5,15 +5,15 @@ package EventManager
 #cgo LDFLAGS: -lcomedi -lm
 #include "statemachine.h"
 #include "stdio.h"
-*/
+
 import "C"
 
-type ElevatorState int
+var ElevatorState int
 
 const (
-	IDLE   ElevatorState = 0
-	MOVING ElevatorState = 1
-	STOP   ElevatorState = 2
+	IDLE   = 0
+	MOVING = 1
+	STOP   = 2
 )
 
 func Statemachine_set_current_floor() int {
@@ -31,7 +31,4 @@ func Statemachine_set_state_and_dir(state ElevatorState, dir MotorDirection) {
 func Statemachine_arrived_at_floor(floor int) int {
 	return int(C.arrived_floor(C.int(floor)))
 }
-
-func Statemachine_send_deleted_order(floor int) int {
-	return int(C.arrived_floor(C.int(floor)))
-}
+*/

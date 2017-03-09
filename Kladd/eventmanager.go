@@ -10,8 +10,8 @@ package EventManager
 import "C"
 
 type Orders struct {
-	floor int
-	dir   int
+	Floor int
+	Dir   int
 }
 
 func Eventmanager_new_order_in_empty_queue() int {
@@ -30,13 +30,19 @@ func Eventmanager_door_timeout() int {
 	return int(C.door_time_out())
 }
 
-func Eventmanager_check_button_signal() Orders {
-	new_order := Orders{}
-	new_order_C := C.check_button_signal()
-	new_order.floor = int(new_order_C.floor)
-	new_order.dir = int(new_order_C.dir)
+func Eventmanager_check_button_signal(chan_new_order chan Orders) {
+	var prev_order Orders
 
-	return new_order
+	for {
+		new_order := Orders{}
+		new_order_C := C.check_button_signal()
+		new_order.Floor = int(new_order_C.floor)
+		new_order.Dir = int(new_order_C.dir)
+		if new_order.Dir != -1 && prev_order != new_order{
+			prev_order = new_order
+			chan_new_order <- new_order
+		}
+	}
 }
 
 func Eventmanager_add_new_order(floor int, button int) {
