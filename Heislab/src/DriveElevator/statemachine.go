@@ -63,12 +63,12 @@ func Statemachine_door_time_out(chan_dir chan int) {
 func Statemachine_button_push(button Button, chan_dir chan int) {
 	switch ElevatorState {
 	case IDLE:
-		if ElevatorFloor == button.floor {
+		if ElevatorFloor == button.Floor {
 			EventManager.Elevator_set_door_open_lamp(1)
 			timer_start()
 			ElevatorState = DOOR_OPEN
 		} else {
-			Internal_queue[button.dir][button.floor] = 1
+			Internal_queue[button.Dir][button.Floor] = 1
 			dir := Internal_queue_choose_dir()
 			fmt.Println("dir: ", dir)
 
@@ -83,25 +83,25 @@ func Statemachine_button_push(button Button, chan_dir chan int) {
 			}
 		}
 	case MOVING:
-		Internal_queue[button.dir][button.floor] = 1
+		Internal_queue[button.Dir][button.Floor] = 1
 		break
 	case DOOR_OPEN:
-		if ElevatorFloor == button.floor {
+		if ElevatorFloor == button.Floor {
 
 		} else {
-			Internal_queue[button.dir][button.floor] = 1
+			Internal_queue[button.Dir][button.Floor] = 1
 		}
 	}
 }
 
-func Statemachine_set_lights(set_lights [][]int) {
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 4; j++ {
-			if set_lights[i][j] == 1 {
-				EventManager.Elevator_set_button_lamp(i, j, 1)
-			} else {
-				EventManager.Elevator_set_button_lamp(i, j, 0)
-			}
-		}
-	}
-}
+// func Statemachine_set_lights(set_lights [][]int) {
+// 	for i := 0; i < 3; i++ {
+// 		for j := 0; j < 4; j++ {
+// 			if set_lights[i][j] == 1 {
+// 				EventManager.Elevator_set_button_lamp(i, j, 1)
+// 			} else {
+// 				EventManager.Elevator_set_button_lamp(i, j, 0)
+// 			}
+// 		}
+// 	}
+// }

@@ -1,6 +1,7 @@
 package Network
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -29,6 +30,7 @@ func Udp_broadcast(IP string, chan_kill chan bool) {
 	for {
 		select {
 		case kill := <-chan_kill:
+			fmt.Println("Goroutine killed...", kill)
 			return
 		}
 		Udp_interface_bcast(send)
@@ -64,6 +66,7 @@ func Udp_receive_is_alive(chan_received_msg chan []byte, chan_is_alive chan stri
 			chan_error <- err
 			return
 		case kill := <-chan_kill:
+			fmt.Println("Goroutine killed...", kill)
 			return
 		}
 
@@ -98,6 +101,7 @@ func Udp_receive_order_status(chan_order_status chan NewOrder, chan_received_msg
 			chan_error <- err
 			return
 		case kill := <-chan_kill:
+			fmt.Println("Goroutine killed...", kill)
 			return
 		}
 	}
@@ -112,7 +116,7 @@ func Udp_send_descendant_nr(descendant_nr int, dest_ip string) {
 }
 
 //Only slave
-func Udp_receive_descendant_nr(chan_descendant_nr chan int, chan_received_msg chan []byte, portNr string, chan_error chan error, chan_kill bool) {
+func Udp_receive_descendant_nr(chan_descendant_nr chan int, chan_received_msg chan []byte, portNr string, chan_error chan error, chan_kill chan bool) {
 	chan_local_err := make(chan error, 1)
 	go Udp_interface_receive(chan_received_msg, portNr, chan_local_err)
 
@@ -126,6 +130,7 @@ func Udp_receive_descendant_nr(chan_descendant_nr chan int, chan_received_msg ch
 			chan_error <- err
 			return
 		case kill := <-chan_kill:
+			fmt.Println("Goroutine killed...", kill)
 			return
 		}
 	}
@@ -155,7 +160,8 @@ func Udp_receive_new_order(chan_new_order chan NewOrder, chan_received_msg chan 
 		case err := <-chan_local_err:
 			chan_error <- err
 			return
-		case kill := chan_kill:
+		case kill := <-chan_kill:
+			fmt.Println("Goroutine killed...", kill)
 			return
 		}
 	}
@@ -177,7 +183,7 @@ func Udp_send_state(status int, value int, dest_ip string) {
 	Udp_interface_send(dest_ip, send)
 }
 
-func Udp_receive_state(chan_elev_state chan ElevState, chan_received_msg chan []byte, portNr string, chan_error chan error, chan_kill chan bool, chan_source_ip string) {
+func Udp_receive_state(chan_elev_state chan ElevState, chan_received_msg chan []byte, portNr string, chan_error chan error, chan_kill chan bool, chan_source_ip chan string) {
 	chan_local_err := make(chan error, 1)
 	go Udp_interface_receive(chan_received_msg, portNr, chan_local_err)
 
@@ -186,12 +192,13 @@ func Udp_receive_state(chan_elev_state chan ElevState, chan_received_msg chan []
 		case received := <-chan_received_msg:
 			data := Udp_json_to_struct(received)
 			chan_elev_state <- data.Status
-			chan_source_ip := data.IP
+			chan_source_ip <- data.IP
 
 		case err := <-chan_local_err:
 			chan_error <- err
 			return
 		case kill := <-chan_kill:
+			fmt.Println("Goroutine killed...", kill)
 			return
 		}
 	}
@@ -203,12 +210,12 @@ func Udp_send_set_lights(set_lights [][]int, dest_ip string) {
 	lights.Lights = set_lights
 
 	send := Udp_struct_to_json(lights)
-	Udp_interface_send(dest, send)
+	Udp_interface_send(dest_ip, send)
 }
 
 func Udp_receive_set_lights(chan_network_lights chan [][]int, chan_received_msg chan []byte, portNr string, chan_error chan error, chan_kill chan bool) {
 	chan_local_err := make(chan error, 1)
-	go Udp_interface_receive(chan_received_msg, portNr, chan_local_error)
+	go Udp_interface_receive(chan_received_msg, portNr, chan_local_err)
 
 	for {
 		select {
@@ -219,6 +226,7 @@ func Udp_receive_set_lights(chan_network_lights chan [][]int, chan_received_msg 
 			chan_error <- err
 			return
 		case kill := <-chan_kill:
+			fmt.Println("Goroutine killed...", kill)
 			return
 		}
 	}

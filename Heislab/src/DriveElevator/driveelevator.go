@@ -36,7 +36,6 @@ func Run_elevator(chan_state chan int, chan_dir chan int, chan_floor chan int, c
 
 		case floor := <-chan_floor_sensor:
 			ElevatorFloor = floor
-			HwState.Floor = floor
 
 			fmt.Println("NEW FLOOR: ", floor)
 			EventManager.Elevator_set_floor_indicator(floor)
@@ -47,8 +46,8 @@ func Run_elevator(chan_state chan int, chan_dir chan int, chan_floor chan int, c
 			if timeout {
 				Statemachine_door_time_out(chan_dir)
 			}
-		case set_lights := <-chan_set_lights:
-			Statemachine_set_lights(set_lights)
+			// case set_lights := <-chan_set_lights:
+			// 	Statemachine_set_lights(set_lights)
 		}
 	}
 }

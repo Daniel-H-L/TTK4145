@@ -7,8 +7,8 @@ import (
 var Internal_queue [3][4]int
 
 type Button struct {
-	dir   int
-	floor int
+	Dir   int
+	Floor int
 }
 
 func Internal_queue_add_new_order(floor int, dir int) {
@@ -30,46 +30,44 @@ func Internal_queue_delete_queue() {
 }
 
 func Internal_queue_check_orders_above(current_floor int) int {
-	for i := current_floor + 1; i < 4; i++{
-		if (Internal_queue[0][i] == 1 || Internal_queue[1][i] == 1 || Internal_queue[2][i] == 1){
+	for i := current_floor + 1; i < 4; i++ {
+		if Internal_queue[0][i] == 1 || Internal_queue[1][i] == 1 || Internal_queue[2][i] == 1 {
 			return 1
 		}
 	}
 	return 0
 }
 
-func Internal_queue_check_orders_below(current_floor int) int { 
-	for i := current_floor-1; i > -1; i--{
-		if (Internal_queue[0][i] == 1 || Internal_queue[1][i]== 1 || Internal_queue[2][i] == 1){
+func Internal_queue_check_orders_below(current_floor int) int {
+	for i := current_floor - 1; i > -1; i-- {
+		if Internal_queue[0][i] == 1 || Internal_queue[1][i] == 1 || Internal_queue[2][i] == 1 {
 			return 1
 		}
-	} 
+	}
 	return 0
 }
 
-    
-func Internal_queue_should_stop(dir int, current_floor int) int { 
-	if(Internal_queue[2][current_floor] == 1){
+func Internal_queue_should_stop(dir int, current_floor int) int {
+	if Internal_queue[2][current_floor] == 1 {
 		return 1
 	}
-	if (dir == UP){
-		if(Internal_queue[0][current_floor] == 1 || Internal_queue_check_orders_above(current_floor) == 0){
-    		return 1
+	if dir == UP {
+		if Internal_queue[0][current_floor] == 1 || Internal_queue_check_orders_above(current_floor) == 0 {
+			return 1
 		}
 	}
-	if (dir == DOWN){
-		if(Internal_queue[1][current_floor] == 1 || Internal_queue_check_orders_below(current_floor) == 0){
-	    	return 1
+	if dir == DOWN {
+		if Internal_queue[1][current_floor] == 1 || Internal_queue_check_orders_below(current_floor) == 0 {
+			return 1
 		}
 	}
-	if (dir == STOP){
-		if(Internal_queue[0][current_floor] == 1 || Internal_queue[1][current_floor] == 1 || Internal_queue[2][current_floor] == 1){
-	    	return 1
+	if dir == STOP {
+		if Internal_queue[0][current_floor] == 1 || Internal_queue[1][current_floor] == 1 || Internal_queue[2][current_floor] == 1 {
+			return 1
 		}
 	}
 	return 0
 }
-
 
 func Internal_queue_choose_dir() int {
 	switch MotorDir {
@@ -107,14 +105,14 @@ func Internal_queue_choose_dir() int {
 func Internal_queue_poll_buttons(chan_new_hw_order chan Button) {
 
 	var buttonStatus [3][4]bool
-	for{
+	for {
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 4; j++ {
 				if EventManager.Elevator_get_button_signal(i, j) == 1 && !buttonStatus[i][j] {
 					button := Button{i, j}
 					buttonStatus[i][j] = true
 					chan_new_hw_order <- button
-				} else if EventManager.Elevator_get_button_signal(i, j) == 0{
+				} else if EventManager.Elevator_get_button_signal(i, j) == 0 {
 					buttonStatus[i][j] = false
 				}
 			}
@@ -128,7 +126,7 @@ func Internal_queue_poll_floor_sensors(chan_floor_sensor chan int) {
 		floor := EventManager.Elevator_get_floor_sensor_signal()
 		if floor != -1 && prev_floor != floor {
 			chan_floor_sensor <- floor
-			prev_floor = floor 
+			prev_floor = floor
 		}
 	}
 }

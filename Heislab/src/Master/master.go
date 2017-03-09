@@ -2,6 +2,8 @@ package Master
 
 import (
 	"../DriveElevator"
+	"../Network"
+	"fmt"
 )
 
 /*
@@ -72,87 +74,93 @@ func Master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, po
 }
 */
 
-func Master_write_backup(backup_p *Network.Backup, button chan DriveElevator.Button, source_ip string, chan_set_lights chan [][]int) {
-	backup = *backup_p
-	var set_lights [][]int
+// func Master_write_backup(backup_p *Network.Backup, button DriveElevator.Button, source_ip string, chan_set_lights chan [][]int) {
+// 	backup := *backup_p
+// 	var set_lights [][]int
 
-	for order := range backup.MainQueue {
-		if backup.MainQueue[order] == source_ip {
-			order.Orders[button.dir][button.floor] = 1
-		}
-		for i := 0; i < 3; i++ {
-			for j := 0; i < 4; i++ {
-				if order.Orders[i][j] == 1 {
-					set_lights[i][j] = 1
-				}
-			}
-		}
-	}
-	chan_set_lights <- set_lights
-}
+// 	for order := range backup.MainQueue {
+// 		if backup.MainQueue[order] == source_ip {
+// 			order.Orders[button.Dir][button.Floor] = 1
+// 		}
+// 		for i := 0; i < 3; i++ {
+// 			for j := 0; i < 4; i++ {
+// 				if order.Orders[i][j] == 1 {
+// 					set_lights[i][j] = 1
+// 				}
+// 			}
+// 		}
+// 	}
+// 	chan_set_lights <- set_lights
+// }
 
-func Master_reset_backup_queue(backup_p *Network.Backup, floor int, chan_set_lights chan [][]int) {
-	backup = *backup_p
-	var set_lights [][]int
+// func Master_reset_backup_queue(backup_p *Network.Backup, floor int, chan_set_lights chan [][]int) {
+// 	backup := *backup_p
+// 	var set_lights [][]int
 
-	for order := range backup.MainQueue {
-		for i := 0; i < 3; i++ {
-			order.Orders[i][floor] = 0
-		}
-		for i := 0; i < 3; i++ {
-			for j := 0; i < 4; i++ {
-				if order.Orders[i][j] == 1 {
-					set_lights[i][j] = 1
-				}
-			}
-		}
-	}
-	chan_set_lights <- set_lights
-}
+// 	for order := range backup.MainQueue {
+// 		for i := 0; i < 3; i++ {
+// 			order.Orders[i][floor] = 0
+// 		}
+// 		for i := 0; i < 3; i++ {
+// 			for j := 0; i < 4; i++ {
+// 				if order.Orders[i][j] == 1 {
+// 					set_lights[i][j] = 1
+// 				}
+// 			}
+// 		}
+// 	}
+// 	chan_set_lights <- set_lights
+// }
 
-func Master_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, backup_p *Network.Backup, chan_source_ip chan string, chan_set_lights chan [][]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_state_slave chan int, chan_dir_slave chan int, chan_floor_slave chan int) {
+func Master_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, backup_p *Network.Backup, chan_source_ip chan string, chan_set_lights chan [][]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_kill chan bool, Master_IP_p *string, chan_received_msg chan []byte, chan_elev_state chan Network.ElevState) {
 	backup := *backup_p
 	Master_IP := *Master_IP_p
 
-	go Udp_receive_state(chan_elev_state, chan_received_msg, portNr, chan_error, chan_kill, chan_source_ip)
+	//go Network.Udp_receive_state(chan_elev_state, chan_received_msg, portNr, chan_error, chan_kill, chan_source_ip)
 
 	for {
 		select {
 		case new_hw_order := <-chan_new_hw_order:
 			chan_new_master_order <- new_hw_order
-			source_ip := <-chan_source_ip
-			Master_write_backup(backup_p, new_hw_order, source_ip, chan_set_lights)
-			//Network.Udp_send_set_lights(chan_set_lights)
-		case executed := <-chan_order_executed:
-			Master_reset_backup_queue(backup_p, executed, chan_set_lights)
-			//Network.Udp_send_set_lights(chan_set_lights)
+		//Master_write_backup(backup_p, new_hw_order, Master_IP, chan_set_lights)
+		//Network.Udp_send_set_lights(chan_set_lights)
+		// case executed := <-chan_order_executed:
+		// 	fmt.Println("Executed... ", executed)
+		//Master_reset_backup_queue(backup_p, executed, chan_set_lights)
+		//Network.Udp_send_set_lights(chan_set_lights)
 		case state := <-chan_state:
+			fmt.Println("state (master): ", state)
 			for elev := range backup.MainQueue {
 				if backup.MainQueue[elev] == Master_IP {
+					fmt.Println(Master_IP)
 					elev.State = state
 				}
 			}
 		case dir := <-chan_dir:
+			fmt.Println("dir (master): ", dir)
 			for elev := range backup.MainQueue {
 				if backup.MainQueue[elev] == Master_IP {
+					fmt.Println(Master_IP)
 					elev.Direction = dir
 				}
 			}
 		case floor := <-chan_floor:
+			fmt.Println("floor (master): ", floor)
 			for elev := range backup.MainQueue {
 				if backup.MainQueue[elev] == Master_IP {
+					fmt.Println(Master_IP)
 					elev.Floor = floor
 				}
 			}
-		case status := <-chan_elev_state:
-			source_ip := <-chan_source_ip
-			for elev := range backup.MainQueue {
-				if backup.MainQueue[elev] == source_ip {
-					elev.State = status.State
-					elev.Floor = status.Floor
-					elev.Direction = status.Direction
-				}
-			}
+			// case status := <-chan_elev_state:
+			// 	source_ip := <-chan_source_ip
+			// 	for elev := range backup.MainQueue {
+			// 		if backup.MainQueue[elev] == source_ip {
+			// 			elev.State = status.State
+			// 			elev.Floor = status.Floor
+			// 			elev.Direction = status.Direction
+			// 		}
+			// 	}
 		}
 	}
 

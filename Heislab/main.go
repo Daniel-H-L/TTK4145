@@ -3,7 +3,7 @@ package main
 import (
 	"./src/DriveElevator"
 	"./src/Master"
-	//"./src/Network"
+	"./src/Network"
 	//"./src/Slave"
 	//"fmt"
 	"time"
@@ -12,7 +12,8 @@ import (
 var backup = Network.Backup{}
 
 //var master = Master.Master{}
-//var MasterIP = ""
+var MasterIP = "129.241.187.142"
+
 //var local_ip = ""
 
 const BCAST_PORT = ":40018"
@@ -24,14 +25,15 @@ func main() {
 	chan_dir := make(chan int, 1)
 	chan_floor := make(chan int, 1)
 
+	chan_state_slave := make(chan Network.ElevState, 1)
 	chan_order_executed := make(chan int, 1)
-
+	chan_kill := make(chan bool)
 	//chan_new_network_order := make(chan Network.NewOrder, 1)
 	chan_new_master_order := make(chan DriveElevator.Button, 1)
 	chan_new_hw_order := make(chan DriveElevator.Button, 1)
 
 	chan_source_ip := make(chan string, 1)
-	//chan_master_receive_msg := make(chan []byte, 1)
+	chan_master_receive_msg := make(chan []byte, 1)
 
 	//chan_error_master := make(chan error, 1)
 
@@ -39,7 +41,7 @@ func main() {
 
 	go DriveElevator.Run_elevator(chan_state, chan_dir, chan_floor, chan_order_executed, chan_new_hw_order, chan_new_master_order, chan_set_lights)
 
-	go Master.Master_test_drive(chan_new_hw_order, chan_new_master_order, &backup, chan_source_ip, chan_set_lights, chan_order_executed)
+	go Master.Master_test_drive(chan_new_hw_order, chan_new_master_order, &backup, chan_source_ip, chan_set_lights, chan_order_executed, chan_state, chan_dir, chan_floor, chan_kill, &MasterIP, chan_master_receive_msg, chan_state_slave)
 
 	for {
 		time.Sleep(50 * time.Millisecond)
