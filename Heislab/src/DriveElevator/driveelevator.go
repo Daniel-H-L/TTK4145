@@ -42,7 +42,7 @@ func Run_elevator(chan_state chan int, chan_dir chan int, chan_floor chan int, c
 		case floor := <-chan_floor_sensor:
 			ElevatorFloor = floor
 
-			fmt.Println("NEW FLOOR: ", floor)
+			//fmt.Println("NEW FLOOR: ", floor)
 			EventManager.Elevator_set_floor_indicator(floor)
 			Statemachine_arrived_at_floor(floor, chan_order_executed, timer)
 			//time.Sleep(50 * time.Millisecond)

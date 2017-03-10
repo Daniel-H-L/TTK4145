@@ -38,30 +38,30 @@ func Udp_interface_send(destinationIP string, data []byte) {
 	}
 
 	time.Sleep(200 * time.Millisecond)
+	defer conn.Close()
 }
 
-func Udp_interface_receive(msg chan []byte, portNr string, chan_error chan error) {
+func Udp_interface_receive(msg chan []byte, portNr string) {
 	connection := udp_interface_init(portNr)
-	connection.SetReadDeadline(time.Now().Add(time.Second))
 	buffer := make([]byte, 1024)
 
-	defer connection.Close()
 	for {
 		n, _, err := connection.ReadFromUDP(buffer)
 
 		if err != nil {
 			msg <- nil
-			chan_error <- err
+			
 			udp_interface_check_error(err)
-			continue
+	
 		}
 		msg <- buffer[0:n]
-		connection.SetReadDeadline(time.Now().Add(time.Second))
+		//connection.SetReadDeadline(time.Now().Add(time.Second))
 	}
+	defer connection.Close()
 }
 
 func Udp_interface_bcast(data []byte) {
-	localAddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:40018")
+	localAddr, err := net.ResolveUDPAddr("udp", "129.241.187.255:40018")
 	udp_interface_check_error(err)
 
 	conn, err := net.DialUDP("udp", nil, localAddr)
@@ -71,5 +71,6 @@ func Udp_interface_bcast(data []byte) {
 		conn.Write([]byte(data))
 	}
 	time.Sleep(200 * time.Millisecond)
+	defer conn.Close()
 
 }

@@ -27,17 +27,16 @@ const (
 func Statemachine_arrived_at_floor(floor int, chan_order_executed chan int, timer *time.Timer) {
 	switch ElevatorState {
 	case MOVING:
-		fmt.Println("MOVING 1")
 		if Internal_queue_should_stop(MotorDir, ElevatorFloor) == 1 {
-			fmt.Println("STOP!")
+
 			EventManager.Elevator_set_motor_dir(0)
 			EventManager.Elevator_set_door_open_lamp(1)
 			timer.Reset(3 * time.Second)
 			Internal_queue_delete_order(floor)
-			fmt.Println("Test1")
 			ElevatorFloor = floor
 			ElevatorState = DOOR_OPEN //flytte denne opp?
 			chan_order_executed <- floor
+			fmt.Print("order executed HW... ", floor, "\n")
 
 		}
 	}
@@ -48,7 +47,7 @@ func Statemachine_door_time_out(chan_dir chan int, chan_state chan int) {
 	case DOOR_OPEN:
 		EventManager.Elevator_set_door_open_lamp(0)
 		dir := Internal_queue_choose_dir()
-		fmt.Println("dir: ", dir)
+		//fmt.Println("dir: ", dir)
 
 		if dir != MotorDir {
 			chan_dir <- dir
@@ -80,7 +79,7 @@ func Statemachine_button_push(button Button, chan_dir chan int, chan_state chan 
 		} else {
 			Internal_queue[button.Dir][button.Floor] = 1
 			dir := Internal_queue_choose_dir()
-			fmt.Println("dir: ", dir)
+			//fmt.Println("dir: ", dir)
 
 			if dir != MotorDir {
 				chan_dir <- dir
@@ -96,7 +95,7 @@ func Statemachine_button_push(button Button, chan_dir chan int, chan_state chan 
 		}
 	case MOVING:
 		Internal_queue[button.Dir][button.Floor] = 1
-		fmt.Println("MOVING 2")
+		//fmt.Println("MOVING 2")
 		break
 	case DOOR_OPEN:
 		if ElevatorFloor == button.Floor {
