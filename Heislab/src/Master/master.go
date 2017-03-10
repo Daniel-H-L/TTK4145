@@ -4,9 +4,8 @@ import (
 	"../DriveElevator"
 	"../Network"
 	"fmt"
+	"time"
 )
-
-/*
 
 type Slave struct {
 	IP         string
@@ -26,16 +25,16 @@ type Master struct {
 
 func (master *Master) master_init(chan_kill chan bool) {
 	fmt.Println("Master init...")
-	master.IP,_ = Network.Udp_get_local_ip()
+	master.IP, _ = Network.Udp_get_local_ip()
 	master.Participants = 0
 	go Network.Udp_broadcast(master.IP, chan_kill)
 	time.Sleep(50 * time.Millisecond)
 }
 
-func Master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, port_nr string, chan_error chan error, master_p *Master) {
-	go Network.Udp_receive_is_alive(chan_rec_msg, chan_is_alive, port_nr, chan_error)
+func Master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, port_nr string, chan_error chan error, master_p *Master, chan_kill chan bool) {
+	go Network.Udp_receive_is_alive(chan_rec_msg, chan_is_alive, port_nr, chan_error, chan_kill)
 	master := *master_p
-	master.master_init()
+	master.master_init(chan_kill)
 
 	for {
 		msg := <-chan_is_alive
@@ -72,48 +71,52 @@ func Master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, po
 	}
 
 }
-*/
 
-// func Master_write_backup(backup_p *Network.Backup, button DriveElevator.Button, source_ip string, chan_set_lights chan [][]int) {
-// 	backup := *backup_p
-// 	var set_lights [][]int
+func Master_write_backup(backup Network.Backup, button DriveElevator.Button, source_ip string, chan_set_lights chan [3][4]int) {
+	set_lights := [3][4]int{}
 
-// 	for order := range backup.MainQueue {
-// 		if backup.MainQueue[order] == source_ip {
-// 			order.Orders[button.Dir][button.Floor] = 1
-// 		}
-// 		for i := 0; i < 3; i++ {
-// 			for j := 0; i < 4; i++ {
-// 				if order.Orders[i][j] == 1 {
-// 					set_lights[i][j] = 1
-// 				}
-// 			}
-// 		}
-// 	}
-// 	chan_set_lights <- set_lights
-// }
+	for ip, order := range backup.MainQueue {
+		if ip == source_ip {
+			fmt.Println("Order:", *order)
+			order.Orders[button.Dir][button.Floor] = 1
+			//fmt.Println("Order2: ", *order)
+		}
+		for i := 0; i < 3; i++ {
+			for j := 0; j < 4; j++ {
+				if order.Orders[i][j] == 1 {
+					set_lights[i][j] = 1
+				} else {
+					set_lights[i][j] = 0
+				}
+			}
+		}
+	}
+	fmt.Println("TURN OFF THE LIGHTS", set_lights)
+	chan_set_lights <- set_lights
+}
 
-// func Master_reset_backup_queue(backup_p *Network.Backup, floor int, chan_set_lights chan [][]int) {
-// 	backup := *backup_p
-// 	var set_lights [][]int
+func Master_reset_backup_queue(backup Network.Backup, floor int, chan_set_lights chan [3][4]int) {
+	set_lights := [3][4]int{}
 
-// 	for order := range backup.MainQueue {
-// 		for i := 0; i < 3; i++ {
-// 			order.Orders[i][floor] = 0
-// 		}
-// 		for i := 0; i < 3; i++ {
-// 			for j := 0; i < 4; i++ {
-// 				if order.Orders[i][j] == 1 {
-// 					set_lights[i][j] = 1
-// 				}
-// 			}
-// 		}
-// 	}
-// 	chan_set_lights <- set_lights
-// }
+	for _, order := range backup.MainQueue {
+		for i := 0; i < 3; i++ {
+			order.Orders[i][floor] = 0
+		}
+		for i := 0; i < 3; i++ {
+			for j := 0; j < 4; j++ {
+				if order.Orders[i][j] == 1 {
+					set_lights[i][j] = 1
+				} else {
+					set_lights[i][j] = 0
+				}
+			}
+		}
+		fmt.Println("HER ", order)
+	}
+	chan_set_lights <- set_lights
+}
 
-func Master_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, backup_p *Network.Backup, chan_source_ip chan string, chan_set_lights chan [][]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_kill chan bool, Master_IP_p *string, chan_received_msg chan []byte, chan_elev_state chan Network.ElevState) {
-	backup := *backup_p
+func Master_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, backup Network.Backup, chan_source_ip chan string, chan_set_lights chan [3][4]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_kill chan bool, Master_IP_p *string, chan_received_msg chan []byte, chan_elev_state chan Network.ElevState) {
 	Master_IP := *Master_IP_p
 
 	//go Network.Udp_receive_state(chan_elev_state, chan_received_msg, portNr, chan_error, chan_kill, chan_source_ip)
@@ -122,36 +125,37 @@ func Master_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_mas
 		select {
 		case new_hw_order := <-chan_new_hw_order:
 			chan_new_master_order <- new_hw_order
-		//Master_write_backup(backup_p, new_hw_order, Master_IP, chan_set_lights)
-		//Network.Udp_send_set_lights(chan_set_lights)
-		// case executed := <-chan_order_executed:
-		// 	fmt.Println("Executed... ", executed)
-		//Master_reset_backup_queue(backup_p, executed, chan_set_lights)
-		//Network.Udp_send_set_lights(chan_set_lights)
+			Master_write_backup(backup, new_hw_order, Master_IP, chan_set_lights)
+			//Network.Udp_send_set_lights(chan_set_lights)
+		case executed := <-chan_order_executed:
+			fmt.Println("Executed... ", executed)
+			Master_reset_backup_queue(backup, executed, chan_set_lights)
+			//Network.Udp_send_set_lights(chan_set_lights)
 		case state := <-chan_state:
 			fmt.Println("state (master): ", state)
-			for elev := range backup.MainQueue {
-				if backup.MainQueue[elev] == Master_IP {
+			for ip, elev := range backup.MainQueue {
+				if ip == Master_IP {
 					fmt.Println(Master_IP)
 					elev.State = state
 				}
 			}
 		case dir := <-chan_dir:
 			fmt.Println("dir (master): ", dir)
-			for elev := range backup.MainQueue {
-				if backup.MainQueue[elev] == Master_IP {
+			for ip, elev := range backup.MainQueue {
+				if ip == Master_IP {
 					fmt.Println(Master_IP)
 					elev.Direction = dir
 				}
 			}
 		case floor := <-chan_floor:
 			fmt.Println("floor (master): ", floor)
-			for elev := range backup.MainQueue {
-				if backup.MainQueue[elev] == Master_IP {
+			for ip, elev := range backup.MainQueue {
+				if ip == Master_IP {
 					fmt.Println(Master_IP)
 					elev.Floor = floor
 				}
 			}
+
 			// case status := <-chan_elev_state:
 			// 	source_ip := <-chan_source_ip
 			// 	for elev := range backup.MainQueue {

@@ -2,7 +2,7 @@ package Slave
 
 import (
 	"../DriveElevator"
-	"../DriveElevator/EventManager"
+	//"../DriveElevator/EventManager"
 	"../Network"
 	"fmt"
 	"time"
@@ -10,8 +10,8 @@ import (
 
 var Descendant_nr int
 
-func Slave_init(chan_received_msg chan []byte, chan_master_bcast chan string, portNr string, chan_error chan error, chan_change_to_master chan bool, Master_IP *string, state int) {
-	*Master_IP = slave_listen_for_master(chan_received_msg, chan_master_bcast, portNr, chan_error, chan_change_to_master)
+func Slave_init(chan_received_msg chan []byte, chan_master_bcast chan string, portNr string, chan_error chan error, chan_change_to_master chan bool, Master_IP *string, state int, chan_kill chan bool) {
+	*Master_IP = slave_listen_for_master(chan_received_msg, chan_master_bcast, portNr, chan_error, chan_change_to_master, chan_kill)
 	fmt.Println("In slave init...")
 	local_ip, _ := Network.Udp_get_local_ip()
 	err := <-chan_error
@@ -33,8 +33,8 @@ func Slave_init(chan_received_msg chan []byte, chan_master_bcast chan string, po
 	}
 }
 
-func slave_listen_for_master(chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_error chan error, chan_change_to_master chan bool) string {
-	go Network.Udp_receive_is_alive(chan_received_msg, chan_is_alive, portNr, chan_error)
+func slave_listen_for_master(chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_error chan error, chan_change_to_master chan bool, chan_kill chan bool) string {
+	go Network.Udp_receive_is_alive(chan_received_msg, chan_is_alive, portNr, chan_error, chan_kill)
 	ip := <-chan_is_alive
 
 	if ip == "" {
@@ -42,7 +42,7 @@ func slave_listen_for_master(chan_received_msg chan []byte, chan_is_alive chan s
 			chan_change_to_master <- true
 		} else if Descendant_nr == 2 {
 			time.Sleep(5 * time.Second)
-			Network.Udp_receive_is_alive(chan_received_msg, chan_is_alive, portNr, chan_error)
+			Network.Udp_receive_is_alive(chan_received_msg, chan_is_alive, portNr, chan_error, chan_kill)
 			ip := <-chan_is_alive
 			if ip == "" {
 				chan_change_to_master <- true
@@ -54,19 +54,19 @@ func slave_listen_for_master(chan_received_msg chan []byte, chan_is_alive chan s
 	return ip
 }
 
-func Slave_test_drive(chan_new_network_order chan Network.NewOrder, chan_new_hw_order EventManager.Button, chan_new_master_order chan EventManager.Button, chan_order_executed chan int, chan_set_lights chan [][]int, chan_network_lights chan [][]int, Master_IP *string) {
-	go Network.Udp_receive_set_lights(chan_network_lights, chan_receive_msg, port_nr, chan_error, chan_kill)
+func Slave_test_drive(chan_new_network_order chan Network.NewOrder, chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, chan_order_executed chan int, chan_set_lights chan [3][4]int, chan_network_lights chan [3][4]int, Master_IP *string, chan_received_msg chan []byte, port_nr string, chan_error chan error, chan_kill chan bool) {
+	go Network.Udp_receive_set_lights(chan_network_lights, chan_received_msg, port_nr, chan_error, chan_kill)
 	for {
 		select {
 		case new_hw_order := <-chan_new_hw_order:
 			new_order := Network.NewOrder{new_hw_order.Floor, new_hw_order.Dir, 1, 0, 0}
 			Network.Udp_send_new_order(new_order, *Master_IP)
 
-		case new_master_order := chan_new_network_order:
-			button := EventManager.Button{new_master_order.Floor, new_master_order.Button}
+		case new_master_order := <-chan_new_network_order:
+			button := DriveElevator.Button{new_master_order.Floor, new_master_order.Button}
 			chan_new_master_order <- button
 
-		case executed := chan_order_executed:
+		case executed := <-chan_order_executed:
 			order := Network.NewOrder{executed, 0, 0, 1, 0}
 			Network.Udp_send_order_status(order, *Master_IP)
 

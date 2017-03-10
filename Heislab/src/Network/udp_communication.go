@@ -204,7 +204,7 @@ func Udp_receive_state(chan_elev_state chan ElevState, chan_received_msg chan []
 	}
 }
 
-func Udp_send_set_lights(set_lights [][]int, dest_ip string) {
+func Udp_send_set_lights(set_lights [3][4]int, dest_ip string) {
 	lights := StandardData{}
 	lights.IP, _ = Udp_get_local_ip()
 	lights.Lights = set_lights
@@ -213,7 +213,7 @@ func Udp_send_set_lights(set_lights [][]int, dest_ip string) {
 	Udp_interface_send(dest_ip, send)
 }
 
-func Udp_receive_set_lights(chan_network_lights chan [][]int, chan_received_msg chan []byte, portNr string, chan_error chan error, chan_kill chan bool) {
+func Udp_receive_set_lights(chan_network_lights chan [3][4]int, chan_received_msg chan []byte, portNr string, chan_error chan error, chan_kill chan bool) {
 	chan_local_err := make(chan error, 1)
 	go Udp_interface_receive(chan_received_msg, portNr, chan_local_err)
 

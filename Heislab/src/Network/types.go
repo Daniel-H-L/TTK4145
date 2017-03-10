@@ -16,7 +16,7 @@ type Queue struct {
 }
 
 type Backup struct {
-	MainQueue map[Queue]string
+	MainQueue map[string]*Queue
 }
 
 type ElevState struct {
@@ -32,5 +32,5 @@ type StandardData struct {
 	Order         NewOrder
 	Main_queue    Backup
 	Status        ElevState
-	Lights        [][]int
+	Lights        [3][4]int
 }

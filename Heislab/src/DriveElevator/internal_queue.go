@@ -2,6 +2,7 @@ package DriveElevator
 
 import (
 	"./EventManager"
+	"fmt"
 )
 
 var Internal_queue [3][4]int
@@ -126,6 +127,7 @@ func Internal_queue_poll_floor_sensors(chan_floor_sensor chan int) {
 		floor := EventManager.Elevator_get_floor_sensor_signal()
 		if floor != -1 && prev_floor != floor {
 			chan_floor_sensor <- floor
+			fmt.Println("floor sensor...", floor)
 			prev_floor = floor
 		}
 	}
