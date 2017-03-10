@@ -12,6 +12,8 @@ import "C"
 type MotorDirection int
 type ElevatorButton int
 
+Vi skal bruke simulator
+
 const (
 	MOTOR_DIR_UP   MotorDirection = 1
 	MOTOR_DIR_DOWN MotorDirection = -1
