@@ -10,24 +10,27 @@ import (
 
 var Descendant_nr int
 
-func Slave_init(chan_received_msg chan []byte, chan_master_bcast chan string, portNr string, chan_error chan error, chan_change_to_master chan bool, Master_IP *string, state int, chan_new_network_order chan Network.NewOrder, chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, chan_order_executed chan int, chan_set_lights chan [3][4]int, chan_network_lights chan [3][4]int, port_nr string) {
+func Slave_init(chan_received_msg chan []byte, chan_master_bcast chan string, portNr string, chan_error chan error, chan_change_to_master chan bool, Master_IP *string, state int, chan_new_network_order chan Network.NewOrder, chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, chan_order_executed chan int, chan_set_lights chan [3][4]int, chan_network_lights chan [3][4]int, port_nr string, chan_source_ip chan string, chan_descendant_nr chan int, chan_new_order chan Network.NewOrder, chan_elev_state chan Network.ElevState, chan_kill chan bool, chan_is_alive chan string) {
 	*Master_IP = ""
 	go Listen_for_master(chan_received_msg, chan_master_bcast, portNr, chan_error, chan_change_to_master)
+	//go Network.Udp_receive_is_alive(chan_received_msg, chan_is_alive, portNr)
 	fmt.Println("In slave init...")
 	//local_ip, _ := Network.Udp_get_local_ip()
 
-	go Slave_test_drive(chan_new_network_order, chan_new_hw_order, chan_new_master_order, chan_order_executed, chan_set_lights, chan_network_lights, Master_IP, chan_received_msg, port_nr)
+	go Slave_test_drive(chan_new_hw_order, chan_new_master_order, chan_order_executed, chan_set_lights, chan_network_lights, Master_IP, chan_received_msg, port_nr, chan_source_ip, chan_descendant_nr, chan_new_order, chan_elev_state, chan_new_network_order, chan_kill)
 }
 
 func Listen_for_master(chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_error chan error, chan_change_to_master chan bool) {
 	Descendant_nr = 1
 	go Network.Udp_receive_is_alive(chan_received_msg, chan_is_alive, portNr)
 	for {
+		fmt.Println("Listen for master... I hope someone is broadcasting... So exited!")
 		select {
 		case ip := <-chan_is_alive:
 			fmt.Println("Master detetcted", ip)
 			//chan_master_ip <- ip
-		case <-time.After(3 * time.Second):
+		case <-time.After(10 * time.Second):
+			fmt.Println("Fikk ikke noe på chan_is_alive så derfor er vi her")
 			if Descendant_nr == 1 {
 				chan_change_to_master <- true
 				return
@@ -37,11 +40,15 @@ func Listen_for_master(chan_received_msg chan []byte, chan_is_alive chan string,
 				Descendant_nr -= 1
 			}
 		}
+		fmt.Println("still in for loop...")
+		//time.Sleep(20 * time.Millisecond)
 	}
 }
 
-func Slave_test_drive(chan_new_network_order chan Network.NewOrder, chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, chan_order_executed chan int, chan_set_lights chan [3][4]int, chan_network_lights chan [3][4]int, Master_IP *string, chan_received_msg chan []byte, port_nr string) {
-	go Network.Udp_receive_set_lights(chan_network_lights, chan_received_msg, port_nr)
+func Slave_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, chan_order_executed chan int, chan_set_lights chan [3][4]int, chan_network_lights chan [3][4]int, Master_IP *string, chan_received_msg chan []byte, port_nr string, chan_source_ip chan string, chan_descendant_nr chan int, chan_new_order chan Network.NewOrder, chan_elev_state chan Network.ElevState, chan_new_network_order chan Network.NewOrder, chan_kill chan bool) {
+
+	chan_kill_network := make(chan bool)
+	go Network.Udp_receive_standard_data(chan_received_msg, port_nr, chan_source_ip, chan_descendant_nr, chan_new_order, chan_elev_state, chan_network_lights, chan_kill_network)
 	for {
 		select {
 		case new_hw_order := <-chan_new_hw_order:
@@ -58,6 +65,9 @@ func Slave_test_drive(chan_new_network_order chan Network.NewOrder, chan_new_hw_
 
 		case set_lights := <-chan_network_lights:
 			chan_set_lights <- set_lights
+		case kill := <-chan_kill:
+			chan_kill_network <- kill
+			return
 		}
 	}
 }

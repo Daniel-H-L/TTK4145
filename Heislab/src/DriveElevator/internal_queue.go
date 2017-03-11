@@ -3,6 +3,7 @@ package DriveElevator
 import (
 	"./EventManager"
 	"fmt"
+	"time"
 )
 
 var Internal_queue [3][4]int
@@ -109,15 +110,18 @@ func Internal_queue_poll_buttons(chan_new_hw_order chan Button) {
 	for {
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 4; j++ {
-				if EventManager.Elevator_get_button_signal(i, j) == 1 && !buttonStatus[i][j] {
-					button := Button{i, j}
-					buttonStatus[i][j] = true
-					chan_new_hw_order <- button
-				} else if EventManager.Elevator_get_button_signal(i, j) == 0 {
-					buttonStatus[i][j] = false
+				if !(i == 1 && j == 0) && !(i == 0 && j == 3) {
+					if EventManager.Elevator_get_button_signal(i, j) == 1 && !buttonStatus[i][j] {
+						button := Button{i, j}
+						buttonStatus[i][j] = true
+						chan_new_hw_order <- button
+					} else if EventManager.Elevator_get_button_signal(i, j) == 0 {
+						buttonStatus[i][j] = false
+					}
 				}
 			}
 		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -130,5 +134,6 @@ func Internal_queue_poll_floor_sensors(chan_floor_sensor chan int) {
 			fmt.Println("floor sensor...", floor)
 			prev_floor = floor
 		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }

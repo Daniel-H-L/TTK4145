@@ -47,13 +47,13 @@ func Udp_broadcast(msg_id string, elevator_nr int) {
 
 func udp_send_is_alive(destination_ip string) {
 	alive := StandardData{}
-	chan_is_alive := make(chan []byte)
+	//chan_is_alive := make(chan []byte)
 	alive.IP, _ = udp_get_local_ip()
 	send := Udp_struct_to_json(alive)
 
 	for {
-		Udp_interface_send(destination_ip, chan_is_alive) //burde for-løkken heller implementeres i laget over?
-		chan_is_alive <- send
+		Udp_interface_send(destination_ip, send) //burde for-løkken heller implementeres i laget over?
+		//chan_is_alive <- send
 		time.Sleep(time.Second)
 	}
 }
@@ -79,7 +79,7 @@ func udp_send_order_executed(order_nr int, is_master bool) {
 //Only master
 func Udp_receive_order_executed(chan_order_executed chan int, chan_received_msg chan []byte, portNr string, chan_error chan error, state int) {
 	err_chan2 := make(chan error, 1)
-	go Udp_interface_receive(chan_received_msg, portNr, err_chan2, state)
+	go Udp_interface_receive(chan_received_msg, portNr, err_chan2)
 
 	for {
 		select {
@@ -100,11 +100,11 @@ func Udp_receive_order_executed(chan_order_executed chan int, chan_received_msg 
 }
 
 //Only master
-func udp_send_descendant_nr(chan_descendant_nr chan []byte, descendant_nr int, dest_ip string) {
+func udp_send_descendant_nr(chan_descendant_nr chan []byte, descendant_nr int, dest_ip string, error_chan chan error) {
 	number := StandardData{}
 	number.Descendant_nr = descendant_nr
-	chan_descendant_nr <- Udp_struct_to_json(number)
-	Udp_interface_send(dest_ip, chan_descendant_nr)
+	send := Udp_struct_to_json(number)
+	Udp_interface_send(dest_ip, send)
 }
 
 //Only slave
@@ -121,8 +121,8 @@ func udp_send_descendant_nr(chan_descendant_nr chan []byte, descendant_nr int, d
 func udp_send_new_order(new_order NewOrder, dest_ip string, chan_new_order chan []byte) {
 	order := StandardData{}
 	order.New_order = new_order
-	chan_new_order <- Udp_struct_to_json(order)
-	Udp_interface_send(dest_ip, chan_new_order)
+	send := Udp_struct_to_json(order)
+	Udp_interface_send(dest_ip, send)
 }
 
 // //Only slave
@@ -138,8 +138,8 @@ func udp_send_new_order(new_order NewOrder, dest_ip string, chan_new_order chan 
 func udp_send_local_order(local_order LocalOrder, dest_ip string, chan_local_order chan []byte) {
 	order := StandardData{}
 	order.Local_order = local_order
-	chan_local_order <- Udp_struct_to_json(order)
-	Udp_interface_send(dest_ip, chan_local_order)
+	send := Udp_struct_to_json(order)
+	Udp_interface_send(dest_ip, send)
 }
 
 //Only master

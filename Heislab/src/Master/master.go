@@ -19,10 +19,11 @@ type Master struct {
 	IP     string
 }
 
-func Master_init(chan_master chan Master, chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_change_to_slave chan bool, chan_master_ip chan string, chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, chan_source_ip chan string, chan_set_lights chan [3][4]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_elev_state chan Network.ElevState, chan_reset chan bool, chan_descendant_nr chan int, chan_slavelist chan map[string]chan bool) {
+func Master_init(chan_master chan Master, chan_received_msg chan []byte, chan_is_alive chan string, portNr string, chan_change_to_slave chan bool, chan_master_ip chan string, chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, chan_source_ip chan string, chan_set_lights chan [3][4]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_elev_state chan Network.ElevState, chan_reset chan bool, chan_descendant_nr chan int, chan_slavelist chan map[string]chan bool, chan_network_lights chan [3][4]int, chan_new_network_order chan Network.NewOrder) {
 	fmt.Println("Master init...")
 	master := Master{}
 	master.IP, _ = Network.Udp_get_local_ip()
+	fmt.Println("MasterIP:", master.IP)
 
 	chan_master <- master
 	chan_master_ip <- master.IP
@@ -34,10 +35,10 @@ func Master_init(chan_master chan Master, chan_received_msg chan []byte, chan_is
 	backup.MainQueue[master.IP] = master_queue
 
 	go Network.Udp_broadcast(master.IP)
-
+	//Network.Udp_send_is_alive("129.241.187.146")
 	time.Sleep(50 * time.Millisecond)
 
-	go Test_drive(chan_new_hw_order, chan_new_master_order, backup, chan_source_ip, chan_set_lights, chan_order_executed, chan_state, chan_dir, chan_floor, chan_master_ip, chan_received_msg, chan_elev_state, portNr, chan_is_alive, chan_reset, chan_descendant_nr, chan_master, chan_slavelist)
+	//go Test_drive(chan_new_hw_order, chan_new_master_order, backup, chan_source_ip, chan_set_lights, chan_order_executed, chan_state, chan_dir, chan_floor, chan_master_ip, chan_received_msg, chan_elev_state, portNr, chan_is_alive, chan_reset, chan_descendant_nr, chan_master, chan_slavelist, chan_network_lights, chan_new_network_order)
 
 }
 
@@ -141,14 +142,13 @@ func reset_backup_slaves(backup Network.Backup, slavelist map[string]chan bool) 
 	}
 }
 
-func Test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, backup Network.Backup, chan_source_ip chan string, chan_set_lights chan [3][4]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_master_ip chan string, chan_received_msg chan []byte, chan_elev_state chan Network.ElevState, portNr string, chan_is_alive chan string, chan_reset chan bool, chan_descendant_nr chan int, chan_master chan Master, chan_slavelist chan map[string]chan bool) {
+func Test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button, backup Network.Backup, chan_source_ip chan string, chan_set_lights chan [3][4]int, chan_order_executed chan int, chan_state chan int, chan_dir chan int, chan_floor chan int, chan_master_ip chan string, chan_received_msg chan []byte, chan_elev_state chan Network.ElevState, portNr string, chan_is_alive chan string, chan_reset chan bool, chan_descendant_nr chan int, chan_master chan Master, chan_slavelist chan map[string]chan bool, chan_network_lights chan [3][4]int, chan_new_network_order chan Network.NewOrder) {
 	fmt.Println("Master test drive start... ")
 	Master_IP := <-chan_master_ip
 	master := <-chan_master
+	chan_kill_network := make(chan bool)
 
-	// go Network.Udp_receive_state(chan_elev_state, chan_received_msg, portNr, chan_source_ip)
-	// go Network.Udp_receive_is_alive(chan_received_msg, chan_is_alive, portNr)
-	// go update_slave_list(chan_is_alive, chan_slavelist, chan_reset, chan_descendant_nr)
+	go Network.Udp_receive_standard_data(chan_received_msg, portNr, chan_source_ip, chan_descendant_nr, chan_new_network_order, chan_elev_state, chan_network_lights, chan_kill_network)
 
 	for {
 		select {
@@ -195,15 +195,15 @@ func Test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_ord
 					elev.Floor = floor
 				}
 			}
-		// case status := <-chan_elev_state:
-		// 	source_ip := <-chan_source_ip
-		// 	for elev := range backup.MainQueue {
-		// 		if backup.MainQueue[elev] == source_ip {
-		// 			elev.State = status.State
-		// 			elev.Floor = status.Floor
-		// 			elev.Direction = status.Direction
-		// 		}
-		// 	}
+		case status := <-chan_elev_state:
+			source_ip := <-chan_source_ip
+			for elev := range backup.MainQueue {
+				if elev == source_ip {
+					backup.MainQueue[elev].State = status.State
+					backup.MainQueue[elev].Floor = status.Floor
+					backup.MainQueue[elev].Direction = status.Direction
+				}
+			}
 		case slavelist := <-chan_slavelist:
 			master.Slaves = slavelist
 			reset_backup_slaves(backup, slavelist)

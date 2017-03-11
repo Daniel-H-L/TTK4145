@@ -26,8 +26,9 @@ type ElevState struct {
 }
 
 type StandardData struct {
-	IP            string
-	Is_alive      bool
+	Type int
+	IP   string
+	//Is_alive      bool
 	Descendant_nr int
 	Order         NewOrder
 	Main_queue    Backup
