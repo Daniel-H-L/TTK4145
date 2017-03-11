@@ -2,174 +2,240 @@ package Master
 
 import (
 	"../DriveElevator"
+	"../Network"
+	"fmt"
+	"time"
 )
-/*
 
 type Slave struct {
 	IP         string
-	Alive      bool
 	Descendant int
-	//Last_floor int
-	//Direction  int
+	Last_floor int
+	Direction  int
 }
 
 type Master struct {
-	Slaves       map[Slave]time.Time
-	IP           string
-	Participants int
-	Last_floor   int
-	Direction    int
+	Slaves map[string]chan bool
+	IP     string
 }
 
-func (master *Master) master_init() {
+func Master_init(chan_change_to_slave chan bool, chan_master chan Master, portNr string) {
 	fmt.Println("Master init...")
-	master.IP,_ = Network.Udp_get_local_ip()
-	master.Participants = 0
+	master := Master{}
+	master.IP, _ = Network.Udp_get_local_ip()
+	fmt.Println("MasterIP:", master.IP)
+
+	chan_master <- master
+	chan_master_ip <- master.IP
+
+	backup := Network.Backup{}
+	master_queue := &Network.Queue{}
+	master_queue.Orders = [3][4]int{{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}
+	backup.MainQueue = make(map[string]*Network.Queue)
+	backup.MainQueue[master.IP] = master_queue
+
+	go Network.Udp_broadcast(master.IP)
+	//Network.Udp_send_is_alive("129.241.187.146")
+	time.Sleep(50 * time.Millisecond)
+	//order := DriveElevator.Button{1,1}
+
+	order2 := Network.NewOrder{1, 1, 0, 0, 0}
 	for {
-		Network.Udp_broadcast(master.IP)
-		time.Sleep(50 * time.Millisecond)
+
+		Network.Udp_send_new_order(order2, "129.241.187.154")
+		time.Sleep(500 * time.Microsecond)
+	}
+
+	//go Test_drive()
+
+}
+
+func slave_timer(chan_reset chan bool, chan_timeout chan string, ip string) {
+	for {
+		select {
+		case <-chan_reset:
+			continue
+		case <-time.After(5 * time.Second):
+			chan_timeout <- ip
+			return
+		}
 	}
 }
 
-func Master_detect_slave(chan_rec_msg chan []byte, chan_is_alive chan string, port_nr string, chan_error chan error, master_p *Master) {
-	go Network.Udp_receive_is_alive(chan_rec_msg, chan_is_alive, port_nr, chan_error)
-	master := *master_p
-	master.master_init()
+func update_slave_list(chan_is_alive chan string, chan_slavelist chan map[string]chan bool, chan_reset chan bool, chan_descendant chan int) {
 
+	participants := 0
+	slavelist := make(map[string]chan bool)
+	chan_timeout := make(chan string)
 	for {
-		msg := <-chan_is_alive
-		is_updated := false
-
-		if msg != "" {
-			for s := range master.Slaves {
-				if s.IP == msg {
-					master.Slaves[s] = time.Now()
+		select {
+		case slave_io := <-chan_is_alive:
+			// ny slave legg til i map eller
+			// refresh timer
+			t := 0
+			for s := range slavelist {
+				if s == slave_io {
+					chan_reset <- true
+					t = 1
 				}
 			}
-			if is_updated == false {
-				new_slave := Slave{msg, true, master.Participants + 1}
-				master.Slaves[new_slave] = time.Now()
-				master.Participants += 1
+			if t == 0 {
+				participants += 1
+				new_slave := Slave{slave_io, participants, -1, -1}
+				slavelist[new_slave.IP] = make(chan bool, 1)
+				go slave_timer(slavelist[new_slave.IP], chan_timeout, new_slave.IP)
+				chan_descendant <- -1
 			}
-		}
+		case ip := <-chan_timeout: //timeout på slave
+			// fjern slave
+			delete(slavelist, ip)
+			participants -= 1
+			chan_descendant <- -1
 
-		const DEADLINE = 1 * time.Second
-		descendant := -1
-		for slave, last_time := range master.Slaves {
-			if time.Since(last_time) > DEADLINE {
-				descendant = slave.Descendant
-				delete(master.Slaves, slave)
-				master.Participants -= 1
-			}
 		}
-		for s := range master.Slaves {
-			if s.Descendant > descendant {
-				s.Descendant -= 1
-				Network.Udp_send_descendant_nr(s.Descendant, s.IP)
-			}
-		}
+		//send slave list
+		chan_slavelist <- slavelist
 	}
+}
 
-}*/
-
-func Master_write_backup(backup_p *Network.Backup, order DriveElevator.Button, source_ip string) [][]int {
-	backup = *backup_p
-	var set_lights [][]int
-
-	for order := range backup.MainQueue{
-		if backup.MainQueue[order] == source_ip {
-			order.Orders[button.dir][button.floor] = 1
+func write_backup_queue(backup Network.Backup, button DriveElevator.Button, source_ip string, chan_set_lights chan [3][4]int) {
+	set_lights := [3][4]int{}
+	for ip, order := range backup.MainQueue {
+		if ip == source_ip {
+			fmt.Println("Order:", *order)
+			order.Orders[button.Dir][button.Floor] = 1
+			//fmt.Println("Order2: ", *order)
 		}
 		for i := 0; i < 3; i++ {
-			for j := 0; i < 4; i++ {
+			for j := 0; j < 4; j++ {
 				if order.Orders[i][j] == 1 {
 					set_lights[i][j] = 1
-				}
-			}
-		}
-	}
-	return set_lights
-}
-
-func Master_test_drive(chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button) {
-	for {
-		select {
-		case new_hw_order := <- chan_new_hw_order:
-			chan_new_master_order <- new_hw_order
-			Master_write_backup()
-		}
-	}
-}
-/*
-func Master_drive_elevator(backup_p *Network.Backup, chan_new_order chan Network.NewOrder, chan_source_ip chan string, chan_received_msg chan []byte, port_nr string, chan_error chan error, master_p *Master, chan_order_executed chan int, chan_new_hw_order chan DriveElevator.Button, chan_new_master_order chan DriveElevator.Button) {
-	go Network.Udp_receive_new_order(chan_new_order, chan_received_msg, port_nr, chan_error, chan_source_ip)
-	//go DriveElevator.Driveelevator_get_new_order(chan_elev_order)
-	go Network.Udp_receive_order_status(chan_new_order, chan_received_msg, port_nr, chan_error, chan_source_ip)
-	backup := *backup_p
-	//master := *master_p
-	local_ip,_ := Network.Udp_get_local_ip() 
-
-	for {
-		select {
-		case new_slave_order := <-chan_new_order:
-			source := <-chan_source_ip
-
-			if new_slave_order.Direction == 2 { //inside order
-				for order := range backup.MainQueue {
-					if backup.MainQueue[order] == source {
-						order.Orders[new_slave_order.Direction][new_slave_order.Floor] = 1
-					}
-				}
-			} else {
-				elevator := local_ip
-				//elevator := master.Master_queue_delegate_order(new_slave_order)
-				if elevator != local_ip {
-					Network.Udp_send_new_order(new_slave_order, elevator)
 				} else {
-					order := DriveElevator.Button{new_slave_order.Floor, new_slave_order.Direction}
-					chan_new_master_order <- order
-				}
-				for order := range backup.MainQueue {
-					if backup.MainQueue[order] == elevator {
-						order.Orders[new_slave_order.Direction][new_slave_order.Floor] = 1
-					}
+					set_lights[i][j] = 0
 				}
 			}
+		}
+	}
+	fmt.Println("TURN OFF THE LIGHTS", set_lights)
+	chan_set_lights <- set_lights
+}
+
+func reset_backup_queue(backup Network.Backup, floor int, chan_set_lights chan [3][4]int) {
+	set_lights := [3][4]int{}
+
+	for _, order := range backup.MainQueue {
+		for i := 0; i < 3; i++ {
+			order.Orders[i][floor] = 0
+		}
+		for i := 0; i < 3; i++ {
+			for j := 0; j < 4; j++ {
+				if order.Orders[i][j] == 1 {
+					set_lights[i][j] = 1
+				} else {
+					set_lights[i][j] = 0
+				}
+			}
+		}
+	}
+	chan_set_lights <- set_lights
+}
+
+func reset_backup_slaves(backup Network.Backup, slavelist map[string]chan bool) {
+	for ip, elev := range backup.MainQueue {
+		if _, key := slavelist[ip]; key {
+			continue
+		} else {
+			elev.State = -1
+		}
+	}
+}
+
+func Test_drive() {
+	fmt.Println("Master test drive start... ")
+	Master_IP := <-chan_master_ip
+	master := <-chan_master
+
+	chan_kill_network := make(chan bool)
+
+	chan_received_msg := make(chan Network.StandardData, 100)
+	chan_new_hw_order := make(chan DriveElevator.Button, 100)
+	chan_new_master_order := make(chan Network.NewOrder, 100)
+
+	chan_source_ip := make(chan string, 1)
+	chan_set_lights := make(chan [3][4]int)
+	chan_order_executed := make(chan int)
+	chan_dir := make(chan int, 1)
+	chan_floor := make(chan int, 1)
+	chan_state := make(chan Network.ElevState, 1)
+
+	chan_slavelist := make(chan map[string]bool)
+
+	go Network.Udp_receive_standard_data(chan_received_msg, portNr, chan_source_ip, chan_descendant_nr, chan_new_network_order, chan_elev_state, chan_network_lights, chan_kill_network)
+
+	for {
+		select {
 		case new_hw_order := <-chan_new_hw_order:
-			elevator,_ := Network.Udp_get_local_ip()
+			fmt.Println("Master received hw_order")
+			chan_new_master_order <- new_hw_order
+			elevator := Master_IP
+			if new_hw_order.Dir != 2 {
+				order := Network.NewOrder{}
+				order.Floor = new_hw_order.Floor
+				order.Button = new_hw_order.Dir
+				elevator = Delegate_order(order, backup)
+			}
+			write_backup_queue(backup, new_hw_order, elevator, chan_set_lights)
+			set_lights := <-chan_set_lights
+			Network.Udp_send_set_lights(set_lights, elevator)
 
-			if new_hw_order.Dir == 2 {
-				chan_new_master_order <- new_hw_order
-			} else {
-				order := Network.NewOrder{new_hw_order.Floor, new_hw_order.Dir, 1, 0, 0}
-				//elevator = master.Master_queue_delegate_order(order)
-				elevator := local_ip
-				if elevator != local_ip {
-					Network.Udp_send_new_order(order, elevator)
-				} else {
-					chan_new_master_order <- new_hw_order
+		case executed := <-chan_order_executed:
+			fmt.Println("Executed... ", executed)
+			reset_backup_queue(backup, executed, chan_set_lights)
+			//Network.Udp_send_set_lights(chan_set_lights, elevator)
+
+		case state := <-chan_state:
+			//fmt.Println("state (master): ", state)
+			for ip, elev := range backup.MainQueue {
+				if ip == Master_IP {
+
+					elev.State = state
 				}
 			}
-			//add order to main queue
-			for order := range backup.MainQueue {
-				if backup.MainQueue[order] == elevator {
-					order.Orders[new_hw_order.Dir][new_hw_order.Floor] = 1
+		case dir := <-chan_dir:
+			//fmt.Println("dir (master): ", dir)
+			for ip, elev := range backup.MainQueue {
+				if ip == Master_IP {
+
+					elev.Direction = dir
 				}
 			}
-		case executed := <- chan_order_executed:
+		case floor := <-chan_floor:
+			//fmt.Println("floor (master): ", floor)
+			for ip, elev := range backup.MainQueue {
+				if ip == Master_IP {
+
+					elev.Floor = floor
+				}
+			}
+		case status := <-chan_elev_state:
 			source_ip := <-chan_source_ip
-				//slette fra hovedkø med floor og alle buttons.
-			for order := range backup.MainQueue {
-				if backup.MainQueue[order] == source_ip {
-					for i := 0; i < 3; i++ {
-						order.Orders[i][executed] = 0
-					}
+			for elev := range backup.MainQueue {
+				if elev == source_ip {
+					backup.MainQueue[elev].State = status.State
+					backup.MainQueue[elev].Floor = status.Floor
+					backup.MainQueue[elev].Direction = status.Direction
 				}
 			}
+		case slavelist := <-chan_slavelist:
+			master.Slaves = slavelist
+			reset_backup_slaves(backup, slavelist)
+		//case nr := <- chan_descendant:
+		//send descendant nr to all slaves.
+
+		default:
+			//fmt.Println("Running testdriver")
+
 		}
 	}
 
 }
-
-//Må oppdatere direction og floor variablene hos master og slaver.
-*/
