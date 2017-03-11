@@ -48,20 +48,25 @@ func Udp_send_is_alive(destination_ip string) {
 
 }
 
-func Udp_receive_is_alive(chan_received_msg chan []byte, chan_is_alive chan string, portNr string) {
+func Udp_receive_is_alive(chan_received_msg chan StandardData, chan_is_alive chan string, portNr string, chan_kill chan bool) {
 	chan_kill_receive := make(chan bool)
 	fmt.Println("Communication.. alive")
-	go Udp_interface_receive(chan_received_msg, portNr, chan_kill_receive)
+	go Udp_interface_receive(chan_received_msg, ":40018", chan_kill_receive)
 
 	for {
 		select {
-		case received := <-chan_received_msg:
-			if received != nil {
-				fmt.Println("YES! WE RECEIVED MSG!!!!")
-				data := Udp_json_to_struct(received)
-				chan_is_alive <- data.IP
-				fmt.Println("Data is on channel! ", data.IP)
-			}
+		case data := <-chan_received_msg:
+			fmt.Println("her")
+
+			fmt.Println("YES! WE RECEIVED MSG!!!!")
+			//data := Udp_json_to_struct(received)
+			chan_is_alive <- data.IP
+			fmt.Println("Data is on channel! ", data.IP)
+
+		case kill := <-chan_kill:
+			fmt.Println("Udp _receive_is_alive received kill")
+			chan_kill_receive <- kill
+			return
 		}
 
 	}
@@ -79,28 +84,29 @@ func Udp_send_order_status(status NewOrder, masterIP string) {
 	Udp_interface_send(masterIP, send)
 }
 
-func Udp_receive_standard_data(chan_received_msg chan []byte, portNr string, chan_source_ip chan string, chan_descendant_nr chan int, chan_new_order chan NewOrder, chan_elev_state chan ElevState, chan_network_lights chan [3][4]int, chan_kill chan bool) {
+func Udp_receive_standard_data(chan_received_msg chan StandardData, portNr string, chan_source_ip chan string, chan_descendant_nr chan int, chan_new_order chan NewOrder, chan_elev_state chan ElevState, chan_network_lights chan [3][4]int, chan_kill chan bool) {
 	chan_kill_receive := make(chan bool)
-	fmt.Println("Received sd...")
+	fmt.Println("Received sd...", portNr)
 	go Udp_interface_receive(chan_received_msg, portNr, chan_kill_receive)
 
 	for {
 		select {
-		case received := <-chan_received_msg:
-			if received != nil {
-				data := Udp_json_to_struct(received)
-				chan_source_ip <- data.IP
-				switch data.Type {
-				case 2:
-					chan_descendant_nr <- data.Descendant_nr
-				case 3:
-					chan_new_order <- data.Order
-				case 5:
-					chan_elev_state <- data.Status
-				case 6:
-					chan_network_lights <- data.Lights
-				}
+		case data := <-chan_received_msg:
+
+			//data := Udp_json_to_struct(received)
+			fmt.Println("Received something: ", data)
+			//chan_source_ip <- data.IP
+			switch data.Type {
+			case 2:
+				chan_descendant_nr <- data.Descendant_nr
+			case 3:
+				chan_new_order <- data.Order
+			case 5:
+				chan_elev_state <- data.Status
+			case 6:
+				chan_network_lights <- data.Lights
 			}
+
 		case <-chan_kill:
 			fmt.Println("Killing slave network")
 			chan_kill_receive <- true
@@ -156,6 +162,8 @@ func Udp_send_new_order(new_order NewOrder, dest_ip string) {
 	order.IP, _ = Udp_get_local_ip()
 	order.Type = 3
 	send := Udp_struct_to_json(order)
+	fmt.Println("Sending new json: ", send)
+
 	Udp_interface_send(dest_ip, send)
 }
 

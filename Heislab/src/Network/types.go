@@ -35,3 +35,11 @@ type StandardData struct {
 	Status        ElevState
 	Lights        [3][4]int
 }
+
+// type StandardData struct {
+// 	Type int
+// 	IP   string
+// 	//Is_alive      bool
+// 	Descendant_nr int
+// 	Data          interface{}
+// }
