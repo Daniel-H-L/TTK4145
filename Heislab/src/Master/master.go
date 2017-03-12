@@ -10,8 +10,8 @@ import (
 type Slave struct {
 	IP         string
 	Descendant int
-	Last_floor int
-	Direction  int
+	//Last_floor int
+	//Direction  int
 }
 
 type Master struct {
@@ -25,7 +25,9 @@ func MasterInit(chan_change_to_slave chan bool, portNr string) {
 	master.IP, _ = Network.Udp_get_local_ip()
 	fmt.Println("MasterIP:", master.IP)
 
-	go Network.Udp_broadcast(master.IP)
+	//go Network.Udp_broadcast(master.IP)
+	//Forlsag:
+	//broadcastCh <- master.IP
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -33,56 +35,56 @@ func MasterInit(chan_change_to_slave chan bool, portNr string) {
 
 }
 
-func slaveTimer(chan_reset chan bool, chan_timeout chan string, ip string) {
+func slaveTimer(resetCh chan bool, timeoutCh chan string, ip string) {
 	for {
 		select {
-		case <-chan_reset:
+		case <-resetCh:
 			continue
 		case <-time.After(5 * time.Second):
-			chan_timeout <- ip
+			timeoutCh <- ip
 			return
 		}
 	}
 }
 
-func updateSlaveList(chan_is_alive chan string, chan_slavelist chan map[string]chan bool, chan_reset chan bool, chan_descendant chan int) {
+func updateSlaveList(isAliveCh chan string, slavelistCh chan map[string]chan bool, resetCh chan bool, descendantCh chan int) {
 
 	participants := 0
 	slavelist := make(map[string]chan bool)
-	chan_timeout := make(chan string)
+	timeoutCh := make(chan string)
 	for {
 		select {
-		case slave_io := <-chan_is_alive:
+		case slaveIO := <-isAliveCh:
 			// ny slave legg til i map eller
 			// refresh timer
 			t := 0
 			for s := range slavelist {
-				if s == slave_io {
-					chan_reset <- true
+				if s == slaveIO {
+					resetCh <- true
 					t = 1
 				}
 			}
 			if t == 0 {
 				participants += 1
-				new_slave := Slave{slave_io, participants, -1, -1}
-				slavelist[new_slave.IP] = make(chan bool, 1)
-				go slave_timer(slavelist[new_slave.IP], chan_timeout, new_slave.IP)
-				chan_descendant <- -1
+				newSlave := Slave{slaveIO, participants, -1, -1}
+				slavelist[newSlave.IP] = make(chan bool, 1)
+				go slave_timer(slavelist[newSlave.IP], timeoutCh, newSlave.IP)
+				descendantCh <- -1
 			}
-		case ip := <-chan_timeout: //timeout på slave
+		case ip := <-timeoutCh: //timeout på slave
 			// fjern slave
 			delete(slavelist, ip)
 			participants -= 1
-			chan_descendant <- -1
+			descendantCh <- -1
 
 		}
 		//send slave list
-		chan_slavelist <- slavelist
+		slavelistCh <- slavelist
 	}
 }
 
-func writeBackupQueue(backup map[string]*Network.Backup, button DriveElevator.Button, source_ip string, chan_set_lights chan [3][4]int) {
-	set_lights := [3][4]int{}
+func writeBackupQueue(backup map[string]*Network.Backup, button DriveElevator.Button, source_ip string, setLightsCh chan [3][4]int) {
+	setLights := [3][4]int{}
 	for ip, order := range backup.MainQueue {
 		if ip == source_ip {
 			fmt.Println("Order:", *order)
@@ -92,19 +94,19 @@ func writeBackupQueue(backup map[string]*Network.Backup, button DriveElevator.Bu
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 4; j++ {
 				if order.Orders[i][j] == 1 {
-					set_lights[i][j] = 1
+					setLights[i][j] = 1
 				} else {
-					set_lights[i][j] = 0
+					setLights[i][j] = 0
 				}
 			}
 		}
 	}
 	fmt.Println("TURN OFF THE LIGHTS", set_lights)
-	chan_set_lights <- set_lights
+	setLightsCh <- setLights
 }
 
-func resetBackupQueue(backup map[string]*Network.Backup, floor int, chan_set_lights chan [3][4]int) {
-	set_lights := [3][4]int{}
+func resetBackupQueue(backup map[string]*Network.Backup, floor int, setLightsCh chan [3][4]int) {
+	setLights := [3][4]int{}
 
 	for _, order := range backup {
 		for i := 0; i < 3; i++ {
@@ -113,17 +115,18 @@ func resetBackupQueue(backup map[string]*Network.Backup, floor int, chan_set_lig
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 4; j++ {
 				if order.Orders[i][j] == 1 {
-					set_lights[i][j] = 1
+					setLights[i][j] = 1
 				} else {
-					set_lights[i][j] = 0
+					setLights[i][j] = 0
 				}
 			}
 		}
 	}
-	chan_set_lights <- set_lights
+	setLightsCh <- setLights
 }
 
-func resetBackupSlaves(backup map[string]*Network.Backup, slavelist map[string]chan bool) {
+func resetBackupSlaves(mainBackupCh map[string]*Network.Backup, slavelist map[string]chan bool) {
+	mainBackup := <-mainBackupCh
 	for ip, elev := range backup {
 		if _, key := slavelist[ip]; key {
 			continue
@@ -136,33 +139,49 @@ func resetBackupSlaves(backup map[string]*Network.Backup, slavelist map[string]c
 func delegateOrder(backup, mainBackupCh chan map[string]*Backup) {
 	mainBackup := <-mainBackupCh
 
-	//Kjør kostfunskjon
-
-	//Update backup
 	for ip := range mainBackup {
+		//Update current elevator state
+		mainBackup[ip].Direction = backup[ip].Direction
+		mainBackup[ip].Floor = backup[ip].Floor
+		mainBackup[ip].State = backup[ip].State
+
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 4; j++ {
 				if mainBackup[ip].Orders[i][j] == 0 && backup[ip].Orders[i][j] == 1 {
-					mainBackup[ip].Orders[i][j] = 1
+					//New order
+					elevator := desideElevator(i, j, mainBackup)
+					mainBackup[elevator].Orders[i][j] = 1
+
 				} else if mainBackup[ip].Orders[i][j] == 1 && backup[ip].Orders[i][j] == 0 {
 					//Ikke mottatt
 					//Send på nytt?
 				} else if mainBackup[ip].Orders[i][j] == 2 && backup[ip].Orders[i][j] == 0 {
 					mainBackup[ip].Orders[i][j] = 0
+
 				} else if mainBackup[ip].Orders[i][j] == 1 && backup[ip].Orders[i][j] == 1 {
 					mainBackup[ip].Orders[i][j] = 2
+
+				} else if mainBackup[ip].State == -1 && backup[ip].Orders[i][j] == 2 {
+					//Handle dead elevators
+					elevator := desideElevator(i, j, mainBackup)
+					mainBackup[elevator].Orders[i][j] = 1
 				}
 			}
 		}
 	}
+	mainBackupCh <- mainBackup
+}
+
+func updateBackupForResurrectedElevator(elevatorIP string, mainBackupCh chan map[string]*Network.Backup, slaveBackup map[string]*Network.Backup) {
+	mainBackup := <-mainBackupCh
+
+	slaveBackup = mainBackup
+
 }
 
 func driveElevator(portNr string, masterCh chan Master, newHWOrder chan [3][4]int) {
 	fmt.Println("Master test drive start... ")
 
-	chan_kill_network := make(chan bool)
-
-	newHWOrder := make(chan DriveElevator.Button, 100)
 	newMasterOrderCh := make(chan DriveElevator.Button, 100)
 
 	slavelistCh := make(chan map[string]chan bool)
@@ -171,8 +190,8 @@ func driveElevator(portNr string, masterCh chan Master, newHWOrder chan [3][4]in
 		select {
 		case backup := <-slaveBackupCh:
 
-		case slavelist := <-chan_slavelist:
-			master := <-chan_master
+		case slavelist := <-slavelistCh:
+			master := <-masterCh
 			master.Slaves = slavelist
 			resetBackupSlaves(backup, slavelist)
 		//case nr := <- chan_descendant:

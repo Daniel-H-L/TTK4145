@@ -24,15 +24,15 @@ const (
 	ELEV_BUTTON_COMMAND ElevatorButton = 2
 )
 
-func Elevator_init() int {
+func ElevatorInit() int {
 	return int(C.elev_init())
 }
 
-func Elevator_set_motor_dir(direction int) {
+func ElevatorSetMotorDir(direction int) {
 	C.elev_set_motor_direction(C.elev_motor_direction_t(direction))
 }
 
-func Elevator_set_button_lamp(button int, floor int, value int) {
+func ElevatorSetButtonLamp(button int, floor int, value int) {
 	C.elev_set_button_lamp(C.elev_button_type_t(button), C.int(floor), C.int(value))
 }
 
@@ -40,14 +40,14 @@ func Elevator_set_floor_indicator(floor int) {
 	C.elev_set_floor_indicator(C.int(floor))
 }
 
-func Elevator_set_door_open_lamp(value int) {
+func ElevatorSetDoorOpenLamp(value int) {
 	C.elev_set_door_open_lamp(C.int(value))
 }
 
-func Elevator_get_button_signal(button int, floor int) int {
+func ElevatorGetButtonSignal(button int, floor int) int {
 	return int(C.elev_get_button_signal(C.elev_button_type_t(button), C.int(floor)))
 }
 
-func Elevator_get_floor_sensor_signal() int {
+func ElevatorGetFloorSensorSignal() int {
 	return int(C.elev_get_floor_sensor_signal())
 }

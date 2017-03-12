@@ -27,7 +27,7 @@
 // 	chan_order_executed := make(chan int, 10)
 
 // 	chan_new_master_order := make(chan DriveElevator.Button, 1)
-// 	chan_new_hw_order := make(chan DriveElevator.Button, 1)
+// 	newHWOrderCh := make(chan DriveElevator.Button, 1)
 
 // 	chan_source_ip := make(chan string, 1)
 
@@ -66,10 +66,10 @@
 // 		case 0:
 // 		case 1:
 // 			time.Sleep(5 * time.Second)
-// 			Slave.Slave_init(chan_slave_received_msg, chan_master_bcast, BCAST_PORT, chan_error_slave, chan_change_to_master, &MasterIP, state, chan_new_network_order, chan_new_hw_order, chan_new_master_order, chan_order_executed, chan_set_lights, chan_network_lights, PORT, chan_source_ip, chan_descendant_nr, chan_new_network_order, chan_elev_state, chan_kill, chan_is_alive)
+// 			Slave.Slave_init(chan_slave_received_msg, chan_master_bcast, BCAST_PORT, chan_error_slave, chan_change_to_master, &MasterIP, state, chan_new_network_order, newHWOrderCh, chan_new_master_order, chan_order_executed, chan_set_lights, chan_network_lights, PORT, chan_source_ip, chan_descendant_nr, chan_new_network_order, chan_elev_state, chan_kill, chan_is_alive)
 // 			fmt.Println("Slave init done...")
 // 		case 2:
-// 			Master.Master_init(chan_master, chan_master_received_msg, chan_is_alive, PORT, chan_change_to_slave, chan_master_ip, chan_new_hw_order, chan_new_master_order, chan_source_ip, chan_set_lights, chan_order_executed, chan_state, chan_dir, chan_floor, chan_elev_state, chan_reset, chan_descendant_nr, chan_slavelist, chan_network_lights, chan_new_network_order)
+// 			Master.Master_init(chan_master, chan_master_received_msg, chan_is_alive, PORT, chan_change_to_slave, chan_master_ip, newHWOrderCh, chan_new_master_order, chan_source_ip, chan_set_lights, chan_order_executed, chan_state, chan_dir, chan_floor, chan_elev_state, chan_reset, chan_descendant_nr, chan_slavelist, chan_network_lights, chan_new_network_order)
 
 // 			//cmd := exec.Command("gnome-terminal", "-x", "go", "run", "protest.go")
 // 			//cmd.Run()

@@ -28,7 +28,7 @@ func main() {
 	fmt.Println("In main...")
 	state := 0
 
-	//go DriveElevator.Run_elevator(chan_state, chan_dir, chan_floor, chan_order_executed, chan_new_hw_order, chan_new_master_order, chan_set_lights)
+	//go DriveElevator.Run_elevator(chan_state, chan_dir, chan_floor, chan_order_executed, newHWOrderCh, chan_new_master_order, chan_set_lights)
 	//local_ip, _ := Network.Udp_get_local_ip()
 
 	for {
@@ -47,9 +47,6 @@ func main() {
 
 						//Må først gå i en sikker state. Dvs utfør alle interne ordre først. Ikke at i mot noen nye.
 						state = 1
-						fmt.Println("Killing slave")
-						chan_kill <- true
-						chan_kill2 <- true
 
 						break SlaveLoop
 					}
