@@ -29,8 +29,12 @@ func udp_interface_init(portNr string) *net.UDPConn {
 	return conn
 }
 
-func Udp_interface_send(destinationIP string, data []byte) {
+func Udp_interface_send(destinationIP string, standarddata StandardData) {
 	fmt.Println("Sending... to ", destinationIP)
+	fmt.Println("Sending... ", standarddata)
+	json_object, _ := json.Marshal(standarddata)
+	fmt.Println("buffer  ", string(json_object))
+
 	localAddr, err := net.ResolveUDPAddr("udp", port)
 	udp_interface_check_error(err)
 
@@ -39,8 +43,9 @@ func Udp_interface_send(destinationIP string, data []byte) {
 	//fmt.Println("conn OK!")
 	udp_interface_check_error(err)
 
-	if len(data) > 0 {
-		conn.Write(data)
+	if len(json_object) > 0 {
+
+		conn.Write(json_object)
 		fmt.Println("Data sent")
 	}
 
@@ -54,6 +59,7 @@ func Udp_interface_receive(msg chan StandardData, portNr string, chan_kill chan 
 	buffer := make([]byte, 1024)
 
 	fmt.Println("In received...")
+
 	for {
 
 		select {
@@ -70,14 +76,15 @@ func Udp_interface_receive(msg chan StandardData, portNr string, chan_kill chan 
 				//fmt.Println("Received msg...")
 				//udp_interface_check_error(err)
 
-			} else {
-				fmt.Println("Add buffer to chan...")
-				struct_object := StandardData{}
+			} else if n > 0 {
+				//fmt.Println("Add buffer to chan...")
+				var struct_object StandardData
 
-				fmt.Println(string(buffer))
+				//fmt.Println(string(buffer))
 
-				json.Unmarshal(buffer[:n], &struct_object)
+				json.Unmarshal(buffer[0:n], &struct_object)
 				msg <- struct_object
+				time.Sleep(2 * time.Millisecond)
 			}
 		}
 	}
@@ -98,6 +105,6 @@ func Udp_interface_bcast(data []byte) {
 	if len(data) > 0 {
 		conn.Write([]byte(data))
 	}
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 }
