@@ -1,9 +1,9 @@
-#Exercise 9
-##Task 1
+# Exercise 9
+## Task 1
 1. Prioritet i sanntidssammenheng avhenger av midlertidige ressurskrav, ikke hvor viktig oppgaven er for at systemet skal oppnå/opprettholde riktig funksjonalitet. Oppgaver blir tilegnet prioritet for å kunne avgjøre hvilke oppgaver som skal gjennomføres først dersom flere ber om de samme ressursene samtidig. 
 2. For at en planlegger skal kunne brukes på sanntidssystemer må den være forutsigbar og vi må kunne benytte tester for å kunne verifisere at alle oppgaver blir fullført innenfor deadline. 
 
-##Task 2
+## Task 2
 1. Uten arv:
 | Task\Time | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12| 13| 14|
 |-----------|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---| 
@@ -17,12 +17,12 @@
 | b | | |E|V| | | | |V| | |E|E|E| | 
 | c |E|Q| | | |Q|Q| | | | | | | |E|
 
-##Task 3
+## Task 3
 1. Priority inversion: når en oppgave er avhengig av ressurser som benyttes av en oppgave med lavere prioritet. 
 Unbounded priority inversion: en oppgave med høy prioritet kan ende opp med å vente uendelig lenge på at en ressurs skal bli frigjort av en oppgave med lavere prioritet.
 2. Prioritetsarv unngår ikke deadlocks.
 
-##Task 4
+## Task 4
 1. (11.2.4) Simple task model
 * The application is assumed to consist of a fixed set of tasks. Reasonable in theory, maybe a challenge in practice. 
 * All tasks are periodic, with known periods. Realistic. 
@@ -45,14 +45,14 @@ From equation (11.1): 3*(2^(1/3) - 1) = 0.7798 > 0.693
 The test fails, so the taks set may not be schedulable. 
 
 3. Response time analysis: 
-*Task c:
+* Task c:
 w0 = 5 => Rc = 5 <= 20, ok
-*Task b:
+* Task b:
 w0 = 10
 w1 = 10 + ceil(10/20)*5 = 15
 w2 = 10 + ceil(15/20)*5 = 15
 => Rb = 15 <= 30, ok
-*Task a:
+* Task a:
 w0 = 15
 w1 = 15 + ceil(15/30)*10 + ceil(15/20)*5 = 15 + 10 + 5 = 30
 w2 = 15 + ceil(30/30)*10 + ceil(30/20)*5 = 15 + 10 + 10 = 35
